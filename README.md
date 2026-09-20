@@ -1,20 +1,23 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 🏹 Arrow Go - Minimalist Puzzle Game
 
-# Run and deploy your AI Studio app
+A minimalist, highly satisfying puzzle game where you tap arrows to fly off the board in the correct unblocking order.
 
-This contains everything you need to run your app locally.
+## 🌐 Play Online (Live Demo)
+Play directly in your browser:  
+👉 **[https://skistudio2007-cloud.github.io/arrow-path/](https://skistudio2007-cloud.github.io/arrow-path/)**
 
-View your app in AI Studio: https://ai.studio/apps/3294450f-4692-456a-aa6b-19bd466303f4
+---
 
-## Run Locally
+## 📱 Android Downloads
 
-**Prerequisites:**  Node.js
+| File | Purpose | Download Link |
+| :--- | :--- | :--- |
+| **`arrow-go.apk`** | Direct Install on Android Phone | [Download APK](https://github.com/skistudio2007-cloud/arrow-path/raw/main/arrow-go.apk) |
+| **`arrow-go.aab`** | Google Play Store Upload (App Bundle) | [Download AAB](https://github.com/skistudio2007-cloud/arrow-path/raw/main/arrow-go.aab) |
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🛠️ Tech Stack & Features
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, Motion
+- **Android Runtime**: Capacitor 8 Native Android
+- **Features**: Responsive screen adaptation, 3,000+ generated puzzle levels, streak tracking, leagues, custom themes, dark mode.
