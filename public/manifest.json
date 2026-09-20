@@ -1,0 +1,18 @@
+{
+  "name": "Arrow Go - Minimalist Puzzle Game",
+  "short_name": "Arrow Go",
+  "description": "A minimalist puzzle game where you tap arrows to fly off the board in the correct unblocking order.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#edf1fa",
+  "theme_color": "#edf1fa",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["games", "puzzle"]
+}
