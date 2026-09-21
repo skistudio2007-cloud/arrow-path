@@ -95,13 +95,14 @@ export function samplePolyline(
 export function slicePolyline(
   pts: PixelPoint[],
   startDist: number,
-  endDist: number
+  endDist: number,
+  lengths?: { total: number; cum: number[] }
 ): { points: PixelPoint[]; headTangent: PixelPoint } {
   if (pts.length < 2 || startDist >= endDist) {
     return { points: [], headTangent: { x: 1, y: 0 } };
   }
 
-  const { total, cum } = getPolylineLengths(pts);
+  const { total, cum } = lengths || getPolylineLengths(pts);
   const clampedStart = Math.max(0, Math.min(startDist, total));
   const clampedEnd = Math.max(clampedStart, Math.min(endDist, total));
 
@@ -112,15 +113,15 @@ export function slicePolyline(
   const startSample = samplePolyline(pts, cum, clampedStart);
   const endSample = samplePolyline(pts, cum, clampedEnd);
 
-  const sliced: PixelPoint[] = [{ ...startSample.point }];
+  const sliced: PixelPoint[] = [startSample.point];
 
   for (let i = 1; i < pts.length - 1; i++) {
     if (cum[i] > clampedStart + 0.5 && cum[i] < clampedEnd - 0.5) {
-      sliced.push({ ...pts[i] });
+      sliced.push(pts[i]);
     }
   }
 
-  sliced.push({ ...endSample.point });
+  sliced.push(endSample.point);
 
   return { points: sliced, headTangent: endSample.tangent };
 }

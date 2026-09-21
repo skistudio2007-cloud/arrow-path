@@ -193,12 +193,13 @@ export function hasAnyOverlapOrInvalidPath(
   rows: number,
   cols: number
 ): boolean {
-  const globalOccupied = new Set<string>();
+  const totalCells = rows * cols;
+  const globalOccupied = new Uint8Array(totalCells);
 
   for (const arrow of arrows) {
     if (arrow.points.length < 2) return true;
 
-    const arrowOccupied = new Set<string>();
+    const arrowOccupied = new Uint8Array(totalCells);
 
     for (let i = 0; i < arrow.points.length; i++) {
       const p = arrow.points[i];
@@ -206,15 +207,15 @@ export function hasAnyOverlapOrInvalidPath(
       // Out of bounds
       if (p.r < 0 || p.r >= rows || p.c < 0 || p.c >= cols) return true;
 
-      const key = `${p.r},${p.c}`;
+      const idx = p.r * cols + p.c;
 
       // Self-overlap
-      if (arrowOccupied.has(key)) return true;
-      arrowOccupied.add(key);
+      if (arrowOccupied[idx] === 1) return true;
+      arrowOccupied[idx] = 1;
 
       // Overlap with another arrow
-      if (globalOccupied.has(key)) return true;
-      globalOccupied.add(key);
+      if (globalOccupied[idx] === 1) return true;
+      globalOccupied[idx] = 1;
 
       // Step continuity check
       if (i > 0) {
@@ -250,6 +251,7 @@ export function hasAnyHeadToHeadConflict(arrows: MazeArrow[]): boolean {
 
 /**
  * Checks if a maze arrow can escape out of the grid without hitting any other arrow.
+ * High-performance spatial check with zero string allocations and flat integer array.
  */
 export function checkArrowEscape(
   arrow: MazeArrow,
@@ -264,12 +266,35 @@ export function checkArrowEscape(
   const head = arrow.points[arrow.points.length - 1];
   const { dr, dc } = DIR_VECTORS[arrow.dir];
 
-  // Map of all grid coordinates occupied by other arrows
-  const cellOwnerMap = new Map<string, MazeArrow>();
-  for (const a of allArrows) {
-    if (a.id === arrow.id) continue;
-    for (const pt of a.points) {
-      cellOwnerMap.set(`${pt.r},${pt.c}`, a);
+  const totalCells = rows * cols;
+  const grid = new Int16Array(totalCells);
+  grid.fill(-1);
+
+  const numArrows = allArrows.length;
+  let currentArrowIdx = -1;
+
+  for (let idx = 0; idx < numArrows; idx++) {
+    const a = allArrows[idx];
+    if (a.id === arrow.id) {
+      currentArrowIdx = idx;
+    }
+    const pts = a.points;
+    for (let p = 0; p < pts.length; p++) {
+      const cellIdx = pts[p].r * cols + pts[p].c;
+      if (cellIdx >= 0 && cellIdx < totalCells) {
+        grid[cellIdx] = idx;
+      }
+    }
+  }
+
+  // If arrow was not present in allArrows, populate its body points with -2
+  if (currentArrowIdx === -1) {
+    const pts = arrow.points;
+    for (let p = 0; p < pts.length - 1; p++) {
+      const cellIdx = pts[p].r * cols + pts[p].c;
+      if (cellIdx >= 0 && cellIdx < totalCells) {
+        grid[cellIdx] = -2;
+      }
     }
   }
 
@@ -277,23 +302,33 @@ export function checkArrowEscape(
   let c = head.c + dc;
 
   while (r >= 0 && r < rows && c >= 0 && c < cols) {
-    const key = `${r},${c}`;
-    if (cellOwnerMap.has(key)) {
-      return {
-        canEscape: false,
-        blockedBy: cellOwnerMap.get(key)!,
-        blockerCoord: { r, c },
-      };
-    }
+    const cellIdx = r * cols + c;
+    const ownerIdx = grid[cellIdx];
 
-    // Also check if arrow's own body is in its forward exit path
-    const isOwnBody = arrow.points.slice(0, -1).some((p) => p.r === r && p.c === c);
-    if (isOwnBody) {
-      return {
-        canEscape: false,
-        blockedBy: arrow,
-        blockerCoord: { r, c },
-      };
+    if (ownerIdx !== -1) {
+      if (ownerIdx >= 0) {
+        if (ownerIdx !== currentArrowIdx) {
+          return {
+            canEscape: false,
+            blockedBy: allArrows[ownerIdx],
+            blockerCoord: { r, c },
+          };
+        } else {
+          // Ran into its own body
+          return {
+            canEscape: false,
+            blockedBy: arrow,
+            blockerCoord: { r, c },
+          };
+        }
+      } else if (ownerIdx === -2) {
+        // Ran into own body (when not in allArrows)
+        return {
+          canEscape: false,
+          blockedBy: arrow,
+          blockerCoord: { r, c },
+        };
+      }
     }
 
     r += dr;
@@ -305,13 +340,58 @@ export function checkArrowEscape(
 
 /**
  * Finds all arrows that can currently escape.
+ * Single-pass spatial index lookup for maximum performance.
  */
 export function getSolvableArrows(
   allArrows: MazeArrow[],
   rows: number,
   cols: number
 ): MazeArrow[] {
-  return allArrows.filter((arrow) => checkArrowEscape(arrow, allArrows, rows, cols).canEscape);
+  const totalCells = rows * cols;
+  const grid = new Int16Array(totalCells);
+  grid.fill(-1);
+
+  const numArrows = allArrows.length;
+  for (let idx = 0; idx < numArrows; idx++) {
+    const pts = allArrows[idx].points;
+    for (let p = 0; p < pts.length; p++) {
+      const cellIdx = pts[p].r * cols + pts[p].c;
+      if (cellIdx >= 0 && cellIdx < totalCells) {
+        grid[cellIdx] = idx;
+      }
+    }
+  }
+
+  const result: MazeArrow[] = [];
+  for (let idx = 0; idx < numArrows; idx++) {
+    const arrow = allArrows[idx];
+    if (arrow.points.length < 2) {
+      result.push(arrow);
+      continue;
+    }
+
+    const head = arrow.points[arrow.points.length - 1];
+    const { dr, dc } = DIR_VECTORS[arrow.dir];
+    let r = head.r + dr;
+    let c = head.c + dc;
+    let canEscape = true;
+
+    while (r >= 0 && r < rows && c >= 0 && c < cols) {
+      const ownerIdx = grid[r * cols + c];
+      if (ownerIdx !== -1) {
+        canEscape = false;
+        break;
+      }
+      r += dr;
+      c += dc;
+    }
+
+    if (canEscape) {
+      result.push(arrow);
+    }
+  }
+
+  return result;
 }
 
 /**

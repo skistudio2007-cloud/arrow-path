@@ -67,15 +67,14 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     return buildArrowHeadAtPoint(tip, { x: dc, y: dr }, arrowHeadSize);
   }, [basePixelPoints, dc, dr, arrowHeadSize]);
 
-  // Precompute extended path for smooth flight animation
-  const exitDistance = useMemo(() => Math.max(900, cellSize * 25), [cellSize]);
-  const extendedPixelPoints = useMemo(() => {
-    return buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDistance);
-  }, [arrow.points, arrow.dir, cellSize, exitDistance]);
-
-  const { total: extendedLength } = useMemo(() => {
-    return getPolylineLengths(extendedPixelPoints);
-  }, [extendedPixelPoints]);
+  // Flight data (extended path & cumulative lengths) computed lazily ONLY when this arrow flies
+  const flightData = useMemo(() => {
+    if (!isFlying) return null;
+    const exitDist = Math.max(900, cellSize * 25);
+    const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist);
+    const lengths = getPolylineLengths(pts);
+    return { pts, lengths, exitDistance: exitDist };
+  }, [isFlying, arrow.points, arrow.dir, cellSize]);
 
   const centerPoint = useMemo(() => ({
     x: basePixelPoints.reduce((acc, p) => acc + p.x, 0) / Math.max(1, basePixelPoints.length),
@@ -125,13 +124,13 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   let headPath = staticHeadPath;
   let headTip = basePixelPoints[basePixelPoints.length - 1];
 
-  if (isFlying && flightProgress > 0) {
-    const totalTravelDistance = originalLength + exitDistance;
+  if (isFlying && flightProgress > 0 && flightData) {
+    const totalTravelDistance = originalLength + flightData.exitDistance;
     const travelDist = flightProgress * totalTravelDistance;
     const startDist = travelDist;
-    const endDist = Math.min(travelDist + originalLength, extendedLength);
+    const endDist = Math.min(travelDist + originalLength, flightData.lengths.total);
 
-    const sliced = slicePolyline(extendedPixelPoints, startDist, endDist);
+    const sliced = slicePolyline(flightData.pts, startDist, endDist, flightData.lengths);
     if (sliced.points.length < 2) {
       return null;
     }

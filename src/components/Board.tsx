@@ -29,6 +29,40 @@ interface BoardProps {
 const MIN_ZOOM = 0.9; // In-zoom / Out-zoom minimum: 90%
 const MAX_ZOOM = 1.5; // Out-zoom / In-zoom maximum: 150%
 
+interface StaticGridDotsProps {
+  rows: number;
+  cols: number;
+  baseCellSize: number;
+  gridDotColor: string;
+}
+
+const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
+  rows,
+  cols,
+  baseCellSize,
+  gridDotColor,
+}) => {
+  const dotRadius = Math.max(1.8, Math.min(3, baseCellSize * 0.06));
+  const dots: React.ReactNode[] = [];
+  for (let r = 0; r < rows; r++) {
+    const cy = r * baseCellSize + baseCellSize / 2;
+    for (let c = 0; c < cols; c++) {
+      const cx = c * baseCellSize + baseCellSize / 2;
+      dots.push(
+        <circle
+          key={`sdot-${r}-${c}`}
+          cx={cx}
+          cy={cy}
+          r={dotRadius}
+          fill={gridDotColor}
+          opacity="0.30"
+        />
+      );
+    }
+  }
+  return <>{dots}</>;
+});
+
 export const Board: React.FC<BoardProps> = ({
   levelId,
   rows,
@@ -248,6 +282,40 @@ export const Board: React.FC<BoardProps> = ({
       }
     };
 
+    let rafId: number | null = null;
+    let pendingPan: { x: number; y: number } | null = null;
+    let pendingZoom: number | null = null;
+
+    const flushPending = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (pendingZoom !== null) {
+        setZoomScale(pendingZoom);
+        pendingZoom = null;
+      }
+      if (pendingPan !== null) {
+        setPan(pendingPan);
+        pendingPan = null;
+      }
+    };
+
+    const scheduleUpdate = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (pendingZoom !== null) {
+          setZoomScale(pendingZoom);
+          pendingZoom = null;
+        }
+        if (pendingPan !== null) {
+          setPan(pendingPan);
+          pendingPan = null;
+        }
+      });
+    };
+
     const handleTouchMove = (e: TouchEvent) => {
       // 1. Two-Finger Zoom & Slide
       if (
@@ -267,7 +335,6 @@ export const Board: React.FC<BoardProps> = ({
           MAX_ZOOM,
           Math.max(MIN_ZOOM, +(touchStartScaleRef.current * scaleFactor).toFixed(2))
         );
-        setZoomScale(newScale);
 
         const currentMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const currentMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
@@ -278,7 +345,9 @@ export const Board: React.FC<BoardProps> = ({
           x: +(touchStartPanRef.current.x + deltaX).toFixed(1),
           y: +(touchStartPanRef.current.y + deltaY).toFixed(1),
         };
-        setPan(applyDragRef.current(rawPan, newScale));
+        pendingZoom = newScale;
+        pendingPan = applyDragRef.current(rawPan, newScale);
+        scheduleUpdate();
       } else if (
         e.touches.length === 1 &&
         isDraggingRef.current &&
@@ -301,7 +370,8 @@ export const Board: React.FC<BoardProps> = ({
             x: +(touchStartPanRef.current.x + deltaX).toFixed(1),
             y: +(touchStartPanRef.current.y + deltaY).toFixed(1),
           };
-          setPan(applyDragRef.current(rawPan, zoomScaleRef.current));
+          pendingPan = applyDragRef.current(rawPan, zoomScaleRef.current);
+          scheduleUpdate();
         }
       }
     };
@@ -313,6 +383,7 @@ export const Board: React.FC<BoardProps> = ({
         setIsPinching(false);
       }
       if (e.touches.length === 0) {
+        flushPending();
         if (hasMovedRef.current) {
           lastScrollEndTimeRef.current = Date.now();
         }
@@ -357,13 +428,15 @@ export const Board: React.FC<BoardProps> = ({
           x: +(mouseStartPan.x + deltaX).toFixed(1),
           y: +(mouseStartPan.y + deltaY).toFixed(1),
         };
-        setPan(applyDragRef.current(rawPan, zoomScaleRef.current));
+        pendingPan = applyDragRef.current(rawPan, zoomScaleRef.current);
+        scheduleUpdate();
       }
     };
 
     const handleMouseUp = () => {
       if (isMouseDown) {
         isMouseDown = false;
+        flushPending();
         setIsActivelyDragging(false);
         if (hasMovedRef.current) {
           lastScrollEndTimeRef.current = Date.now();
@@ -391,6 +464,9 @@ export const Board: React.FC<BoardProps> = ({
     window.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
       targetElements.forEach((el) => {
         el.removeEventListener('touchstart', handleTouchStart);
         el.removeEventListener('touchmove', handleTouchMove);
@@ -406,30 +482,6 @@ export const Board: React.FC<BoardProps> = ({
   }, []);
 
   const gridDotColor = theme?.gridDotColor || '#94a3b8';
-
-  // Static grid dots across all cells - strictly memoized on grid dimensions
-  // NEVER re-renders during arrow flight, tap, or sinking animation!
-  const staticGridDots = useMemo(() => {
-    const dotRadius = Math.max(1.8, Math.min(3, baseCellSize * 0.06));
-    const dots: React.ReactNode[] = [];
-    for (let r = 0; r < rows; r++) {
-      const cy = r * baseCellSize + baseCellSize / 2;
-      for (let c = 0; c < cols; c++) {
-        const cx = c * baseCellSize + baseCellSize / 2;
-        dots.push(
-          <circle
-            key={`sdot-${r}-${c}`}
-            cx={cx}
-            cy={cy}
-            r={dotRadius}
-            fill={gridDotColor}
-            opacity="0.30"
-          />
-        );
-      }
-    }
-    return dots;
-  }, [rows, cols, baseCellSize, gridDotColor]);
 
   // Sinking dots overlay: ONLY renders and animates the 3-8 dots that are actually sinking!
   const sinkingDotsOverlay = useMemo(() => {
@@ -516,7 +568,12 @@ export const Board: React.FC<BoardProps> = ({
           >
             {/* Clean minimal grid dots with isolated animated overlay */}
             <g className="pointer-events-none">
-              {staticGridDots}
+              <StaticGridDots
+                rows={rows}
+                cols={cols}
+                baseCellSize={baseCellSize}
+                gridDotColor={gridDotColor}
+              />
               {sinkingDotsOverlay}
             </g>
 
