@@ -4,8 +4,8 @@ dist/
 coverage/
 .DS_Store
 *.log
-!arrow-go.apk
-!arrow-go.aab
+*.apk
+*.aab
 .env*
 !.env.example
 
