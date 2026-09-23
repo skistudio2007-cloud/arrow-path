@@ -224,13 +224,17 @@ export default function App() {
 
   // Compute player stats for Collection / Records
   const playerStats: PlayerStats = useMemo(() => {
-    const completedCount = Object.keys(completedLevels).length;
-    const totalStars = Object.values(completedLevels).reduce<number>(
-      (acc, s) => acc + (typeof s === 'number' ? s : 0),
-      0
-    );
-    const completedKeys = Object.keys(completedLevels).map(Number);
-    const highestLevel = completedKeys.length > 0 ? Math.max(...completedKeys, currentLevelId) : currentLevelId;
+    let completedCount = 0;
+    let totalStars = 0;
+    let highestLevel = currentLevelId;
+
+    for (const key of Object.keys(completedLevels)) {
+      completedCount++;
+      const val = completedLevels[key];
+      if (typeof val === 'number') totalStars += val;
+      const numKey = Number(key);
+      if (numKey > highestLevel) highestLevel = numKey;
+    }
 
     return {
       completedCount,

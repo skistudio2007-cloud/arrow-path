@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { MazeArrow } from '../types';
 import { DIR_VECTORS } from '../utils/levels';
@@ -38,7 +38,10 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   onHoverStart,
   onHoverEnd,
 }) => {
-  const [flightProgress, setFlightProgress] = useState<number>(0);
+  const groupRef = useRef<SVGGElement>(null);
+  const hitPathRef = useRef<SVGPathElement>(null);
+  const bodyPathRef = useRef<SVGPathElement>(null);
+  const headPathRef = useRef<SVGPathElement>(null);
   const animFrameRef = useRef<number | null>(null);
 
   // Direction vectors
@@ -81,11 +84,13 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     y: basePixelPoints.reduce((acc, p) => acc + p.y, 0) / Math.max(1, basePixelPoints.length),
   }), [basePixelPoints]);
 
-  // High-performance parametric Snake slithering animation loop
+  // High-performance direct-DOM parametric Snake slithering animation loop
+  // Zero React state updates / zero React re-renders during flight!
   useEffect(() => {
-    if (isFlying) {
+    if (isFlying && flightData) {
       const startTime = performance.now();
       const duration = 480; // 480ms ultra-smooth slither
+      const totalTravelDistance = originalLength + flightData.exitDistance;
 
       const step = (now: number) => {
         const elapsed = now - startTime;
@@ -96,7 +101,32 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
             ? 2 * rawProgress * rawProgress
             : -1 + (4 - 2 * rawProgress) * rawProgress;
 
-        setFlightProgress(eased);
+        const travelDist = eased * totalTravelDistance;
+        const startDist = travelDist;
+        const endDist = Math.min(travelDist + originalLength, flightData.lengths.total);
+
+        const sliced = slicePolyline(flightData.pts, startDist, endDist, flightData.lengths);
+        if (sliced.points.length >= 2) {
+          const newBodyPath = buildFilletedPixelPath(sliced.points, cornerRadius);
+          const newHeadTip = sliced.points[sliced.points.length - 1];
+          const newHeadPath = buildArrowHeadAtPoint(newHeadTip, sliced.headTangent, arrowHeadSize);
+
+          if (bodyPathRef.current) {
+            bodyPathRef.current.setAttribute('d', newBodyPath);
+          }
+          if (hitPathRef.current) {
+            hitPathRef.current.setAttribute('d', newBodyPath);
+          }
+          if (headPathRef.current) {
+            headPathRef.current.setAttribute('d', newHeadPath);
+            headPathRef.current.style.transformOrigin = `${newHeadTip.x}px ${newHeadTip.y}px`;
+          }
+        }
+
+        if (groupRef.current && eased > 0.7) {
+          const fade = Math.max(0, 1 - (eased - 0.7) / 0.3);
+          groupRef.current.style.opacity = `${fade}`;
+        }
 
         if (rawProgress < 1) {
           animFrameRef.current = requestAnimationFrame(step);
@@ -110,34 +140,16 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
           cancelAnimationFrame(animFrameRef.current);
         }
       };
-    } else {
-      setFlightProgress(0);
     }
-  }, [isFlying]);
+  }, [isFlying, flightData, originalLength, cornerRadius, arrowHeadSize]);
 
   // Shake recoil translations
   const shakeX = isShaking ? [0, dc * 9, -dc * 6, dc * 3, 0] : 0;
   const shakeY = isShaking ? [0, dr * 9, -dr * 6, dr * 3, 0] : 0;
 
-  // Determine current active snake path (only slices when actually in flight)
-  let bodyPath = staticBodyPath;
-  let headPath = staticHeadPath;
-  let headTip = basePixelPoints[basePixelPoints.length - 1];
-
-  if (isFlying && flightProgress > 0 && flightData) {
-    const totalTravelDistance = originalLength + flightData.exitDistance;
-    const travelDist = flightProgress * totalTravelDistance;
-    const startDist = travelDist;
-    const endDist = Math.min(travelDist + originalLength, flightData.lengths.total);
-
-    const sliced = slicePolyline(flightData.pts, startDist, endDist, flightData.lengths);
-    if (sliced.points.length < 2) {
-      return null;
-    }
-    bodyPath = buildFilletedPixelPath(sliced.points, cornerRadius);
-    headTip = sliced.points[sliced.points.length - 1];
-    headPath = buildArrowHeadAtPoint(headTip, sliced.headTangent, arrowHeadSize);
-  }
+  const bodyPath = staticBodyPath;
+  const headPath = staticHeadPath;
+  const headTip = basePixelPoints[basePixelPoints.length - 1];
 
   const strokeColor = isBlocked
     ? '#ef4444' // Red warning flash
@@ -153,6 +165,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
 
   return (
     <motion.g
+      ref={groupRef}
       id={`maze-arrow-${arrow.id}`}
       onClick={(e) => {
         if (isFlying) return;
@@ -186,12 +199,12 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         transformOrigin: `${centerPoint.x}px ${centerPoint.y}px`,
         filter: isHovered ? 'drop-shadow(0 2px 4px rgba(15, 23, 42, 0.25))' : 'none',
         willChange: isFlying || isShaking ? 'transform, opacity' : 'auto',
-        opacity: isFlying && flightProgress > 0.7 ? Math.max(0, 1 - (flightProgress - 0.7) / 0.3) : 1,
       }}
       className={isFlying ? "pointer-events-none select-none" : "cursor-pointer select-none"}
     >
       {/* Generous invisible stroke area for easy tap & click interaction */}
       <path
+        ref={hitPathRef}
         d={bodyPath}
         fill="none"
         stroke="transparent"
@@ -234,6 +247,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
       {/* Main Snake Body Polyline */}
       {isDense ? (
         <path
+          ref={bodyPathRef}
           d={bodyPath}
           fill="none"
           stroke={strokeColor}
@@ -243,6 +257,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         />
       ) : (
         <motion.path
+          ref={bodyPathRef}
           d={bodyPath}
           fill="none"
           stroke={strokeColor}
@@ -262,6 +277,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
       {/* Sleek Aerodynamic Arrowhead */}
       {isDense ? (
         <path
+          ref={headPathRef}
           d={headPath}
           fill={strokeColor}
           stroke={strokeColor}
@@ -270,6 +286,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         />
       ) : (
         <motion.path
+          ref={headPathRef}
           d={headPath}
           fill={strokeColor}
           stroke={strokeColor}

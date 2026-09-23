@@ -4,6 +4,24 @@ class SoundManager {
   private ctx: AudioContext | null = null;
   public enabled: boolean = true;
 
+  private noiseBuffer: AudioBuffer | null = null;
+
+  private getNoiseBuffer(): AudioBuffer | null {
+    if (!this.ctx) return null;
+    if (!this.noiseBuffer) {
+      const sampleRate = this.ctx.sampleRate;
+      const noiseDuration = 0.012; // 12ms
+      const buffer = this.ctx.createBuffer(1, Math.max(1, Math.floor(sampleRate * noiseDuration)), sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < output.length; i++) {
+        const decay = Math.exp(-i / (sampleRate * 0.0022));
+        output[i] = (Math.random() * 2 - 1) * decay;
+      }
+      this.noiseBuffer = buffer;
+    }
+    return this.noiseBuffer;
+  }
+
   constructor() {
     // Load preference from localStorage
     const saved = localStorage.getItem('arrowgo_sound_enabled');
@@ -239,33 +257,28 @@ class SoundManager {
       }
 
       // --- 1. Keycap Actuation Snap (Crisp transient noise burst - the "clack") ---
-      const sampleRate = this.ctx.sampleRate;
       const noiseDuration = 0.012; // 12ms
-      const noiseBuffer = this.ctx.createBuffer(1, Math.max(1, Math.floor(sampleRate * noiseDuration)), sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < output.length; i++) {
-        const decay = Math.exp(-i / (sampleRate * 0.0022));
-        output[i] = (Math.random() * 2 - 1) * decay;
+      const noiseBuffer = this.getNoiseBuffer();
+      if (noiseBuffer) {
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        // Bandpass filter for the crisp mechanical switch keycap click (3400Hz)
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(3400 * pitchVar, now);
+        filter.Q.setValueAtTime(3.8, now);
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.42, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseDuration);
+
+        whiteNoise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+
+        whiteNoise.start(now);
       }
-
-      const whiteNoise = this.ctx.createBufferSource();
-      whiteNoise.buffer = noiseBuffer;
-
-      // Bandpass filter for the crisp mechanical switch keycap click (3400Hz)
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(3400 * pitchVar, now);
-      filter.Q.setValueAtTime(3.8, now);
-
-      const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.42, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseDuration);
-
-      whiteNoise.connect(filter);
-      filter.connect(noiseGain);
-      noiseGain.connect(this.ctx.destination);
-
-      whiteNoise.start(now);
 
       // --- 2. Key Switch Body Resonance (The deep tactile "thock") ---
       const osc = this.ctx.createOscillator();
