@@ -24,6 +24,7 @@ interface BoardProps {
   sinkingEvents?: SinkingDotEvent[];
   showTrajectory?: boolean;
   onArrowClick: (arrow: MazeArrow) => void;
+  isVictory?: boolean;
 }
 
 const MIN_ZOOM = 0.9; // In-zoom / Out-zoom minimum: 90%
@@ -34,6 +35,7 @@ interface StaticGridDotsProps {
   cols: number;
   baseCellSize: number;
   gridDotColor: string;
+  isVictory?: boolean;
 }
 
 const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
@@ -41,13 +43,20 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
   cols,
   baseCellSize,
   gridDotColor,
+  isVictory,
 }) => {
   const dotRadius = Math.max(1.8, Math.min(3, baseCellSize * 0.06));
+  const centerR = (rows - 1) / 2;
+  const centerC = (cols - 1) / 2;
+  const maxDist = Math.hypot(centerR, centerC) || 1;
+
   const dots: React.ReactNode[] = [];
   for (let r = 0; r < rows; r++) {
     const cy = r * baseCellSize + baseCellSize / 2;
     for (let c = 0; c < cols; c++) {
       const cx = c * baseCellSize + baseCellSize / 2;
+      const dist = Math.hypot(r - centerR, c - centerC);
+      const normDist = dist / maxDist; // 0 at center, 1 at corner
       dots.push(
         <circle
           key={`sdot-${r}-${c}`}
@@ -55,7 +64,15 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
           cy={cy}
           r={dotRadius}
           fill={gridDotColor}
-          opacity="0.30"
+          style={
+            isVictory
+              ? {
+                  transformOrigin: `${cx}px ${cy}px`,
+                  animation: `victoryDotDisappear 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) ${(normDist * 0.35).toFixed(3)}s forwards`,
+                }
+              : undefined
+          }
+          opacity={isVictory ? undefined : "0.30"}
         />
       );
     }
@@ -76,6 +93,7 @@ export const Board: React.FC<BoardProps> = ({
   sinkingEvents = [],
   showTrajectory = true,
   onArrowClick,
+  isVictory = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -545,8 +563,9 @@ export const Board: React.FC<BoardProps> = ({
                 cols={cols}
                 baseCellSize={baseCellSize}
                 gridDotColor={gridDotColor}
+                isVictory={isVictory}
               />
-              {sinkingDotsOverlay}
+              {!isVictory && sinkingDotsOverlay}
             </g>
 
             {/* Trajectory Guide for hovered arrow */}

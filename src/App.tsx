@@ -963,6 +963,7 @@ export default function App() {
                 sinkingEvents={sinkingEvents}
                 showTrajectory={settings.showTrajectory}
                 onArrowClick={handleArrowClick}
+                isVictory={isVictory || showWinningAnimation}
               />
             )}
 
@@ -1035,15 +1036,15 @@ export default function App() {
                     </motion.span>
                   ))}
 
-                  {/* Central Celebration Pop (Borderless, High-Impact Black & Blue Typography with Elastic Squash-Stretch Animation) */}
+                  {/* Central Celebration Pop (Zoom Type Animation, Borderless, Compact Letter Size) */}
                   <motion.div
-                    initial={{ scale: 0.85, opacity: 0 }}
-                    animate={{ scale: [0.85, 1.04, 1], opacity: 1 }}
-                    exit={{ scale: 1.04, opacity: 0 }}
-                    transition={{ duration: 0.45, ease: 'easeOut' }}
+                    initial={{ scale: 0.2, opacity: 0 }}
+                    animate={{ scale: [0.2, 1.15, 1], opacity: 1 }}
+                    exit={{ scale: 1.25, opacity: 0 }}
+                    transition={{ duration: 0.45, ease: [0.22, 1.25, 0.36, 1] }}
                     className="relative z-10 flex flex-col items-center justify-center select-none pointer-events-none"
                   >
-                    {/* Animated Letters (Black & Blue Theme with Smooth Elastic Pop & Bounce, No Border, No Level Complete badge) */}
+                    {/* Animated Letters (Zoom Punch Animation, Black & Blue Theme, Compact Neat Letter Size) */}
                     <div className="flex items-center justify-center flex-wrap px-4 py-2">
                       {Array.from(currentLanguage === 'hi' ? praiseWord.hi : praiseWord.en).map((char, index) => {
                         const isEven = index % 2 === 0;
@@ -1052,27 +1053,25 @@ export default function App() {
                             key={`${praiseWord.en}-${index}`}
                             initial={{
                               opacity: 0,
-                              scale: 0,
-                              y: 55,
-                              rotate: isEven ? -18 : 18,
+                              scale: 0.05,
+                              rotate: isEven ? -8 : 8,
                             }}
                             animate={{
                               opacity: [0, 1, 1, 1],
-                              scale: [0, 1.45, 0.92, 1.08, 1],
-                              y: [55, -24, 7, -3, 0],
-                              rotate: [isEven ? -18 : 18, isEven ? 6 : -6, isEven ? -2 : 2, 0],
+                              scale: [0.05, 1.38, 0.94, 1],
+                              rotate: [isEven ? -8 : 8, isEven ? 2 : -2, 0],
                             }}
                             transition={{
-                              duration: 0.72,
-                              delay: index * 0.072,
-                              ease: [0.34, 1.45, 0.64, 1],
+                              duration: 0.65,
+                              delay: index * 0.065,
+                              ease: [0.22, 1.35, 0.36, 1],
                             }}
-                            style={{ transformOrigin: 'center bottom' }}
-                            className={`inline-block text-5xl sm:text-6xl md:text-7xl font-black tracking-widest uppercase select-none ${
+                            style={{ transformOrigin: 'center center' }}
+                            className={`inline-block text-3xl sm:text-4xl md:text-5xl font-black tracking-wider uppercase select-none ${
                               isEven
                                 ? 'bg-gradient-to-b from-neutral-950 via-slate-900 to-blue-700'
                                 : 'bg-gradient-to-b from-blue-600 via-sky-500 to-neutral-950'
-                            } bg-clip-text text-transparent filter drop-shadow-[0_6px_22px_rgba(37,99,235,0.7)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]`}
+                            } bg-clip-text text-transparent filter drop-shadow-[0_5px_18px_rgba(37,99,235,0.65)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]`}
                           >
                             {char === ' ' ? '\u00A0' : char}
                           </motion.span>
