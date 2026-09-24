@@ -549,31 +549,31 @@ export default function App() {
     }
     setPraiseWord(picked);
 
-    // Trigger celebration pop & animation on the completed level with White, Blue, and Red theme
+    // Trigger celebration pop & animation on the completed level with Black and Blue theme
     setShowWinningAnimation(true);
-    const whiteBlueRedColors = ['#ffffff', '#2563eb', '#ef4444', '#3b82f6', '#dc2626', '#f8fafc'];
+    const celebrationColors = ['#0a0a0a', '#1e293b', '#2563eb', '#3b82f6', '#1d4ed8', '#60a5fa', '#ffffff'];
     try {
       confetti({
-        particleCount: 38,
+        particleCount: 40,
         angle: 60,
-        spread: 58,
+        spread: 60,
         origin: { x: 0.08, y: 0.65 },
-        colors: whiteBlueRedColors,
+        colors: celebrationColors,
         disableForReducedMotion: true,
       });
       confetti({
-        particleCount: 38,
+        particleCount: 40,
         angle: 120,
-        spread: 58,
+        spread: 60,
         origin: { x: 0.92, y: 0.65 },
-        colors: whiteBlueRedColors,
+        colors: celebrationColors,
         disableForReducedMotion: true,
       });
       confetti({
-        particleCount: 32,
-        spread: 85,
+        particleCount: 36,
+        spread: 90,
         origin: { x: 0.5, y: 0.5 },
-        colors: whiteBlueRedColors,
+        colors: celebrationColors,
         disableForReducedMotion: true,
       });
     } catch {
@@ -977,35 +977,37 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                   className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center overflow-hidden"
                 >
-                  {/* Concentric expanding success burst rings (White, Blue, Red Theme) */}
+                  {/* Concentric expanding success burst rings (Black & Blue Theme) */}
                   <motion.div
                     initial={{ scale: 0.35, opacity: 0.95 }}
-                    animate={{ scale: 2.15, opacity: 0 }}
+                    animate={{ scale: 2.2, opacity: 0 }}
                     transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute w-44 h-44 rounded-full border-2 border-blue-500/90 shadow-[0_0_26px_rgba(59,130,246,0.6)]"
+                    className="absolute w-48 h-48 rounded-full border-2 border-blue-500/90 shadow-[0_0_32px_rgba(59,130,246,0.7)]"
                   />
                   <motion.div
                     initial={{ scale: 0.25, opacity: 0.9 }}
-                    animate={{ scale: 1.65, opacity: 0 }}
+                    animate={{ scale: 1.7, opacity: 0 }}
                     transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute w-36 h-36 rounded-full border-2 border-red-500/90 shadow-[0_0_24px_rgba(239,68,68,0.55)]"
+                    className="absolute w-36 h-36 rounded-full border-2 border-slate-900/80 shadow-[0_0_24px_rgba(15,23,42,0.6)]"
                   />
 
-                  {/* Soft ambient center glow with White, Blue & Red */}
+                  {/* Soft ambient center glow with Blue & Deep Slate */}
                   <motion.div
                     initial={{ scale: 0.4, opacity: 0 }}
-                    animate={{ scale: [0.4, 1.2, 0.9], opacity: [0, 0.5, 0] }}
+                    animate={{ scale: [0.4, 1.25, 0.9], opacity: [0, 0.55, 0] }}
                     transition={{ duration: 0.72, ease: 'easeOut' }}
-                    className="absolute w-60 h-60 rounded-full bg-gradient-to-tr from-blue-600/35 via-white/50 to-red-600/35 blur-2xl"
+                    className="absolute w-64 h-64 rounded-full bg-gradient-to-tr from-blue-600/35 via-sky-400/25 to-slate-950/20 blur-2xl"
                   />
 
-                  {/* Shimmering celebration sparkles floating upward (White, Blue, Red) */}
+                  {/* Shimmering celebration sparkles floating upward (Black & Blue Theme) */}
                   {[
-                    { x: -55, y: -45, delay: 0.04, size: 22, char: '✨', color: '#ffffff' },
-                    { x: 58, y: -38, delay: 0.1, size: 20, char: '🔷', color: '#3b82f6' },
-                    { x: -42, y: 38, delay: 0.06, size: 20, char: '⭐', color: '#ef4444' },
-                    { x: 48, y: 42, delay: 0.14, size: 22, char: '✨', color: '#ffffff' },
-                    { x: 0, y: -62, delay: 0.02, size: 24, char: '🌟', color: '#ef4444' },
+                    { x: -60, y: -48, delay: 0.04, size: 24, char: '✨', color: '#2563eb' },
+                    { x: 62, y: -42, delay: 0.1, size: 22, char: '🔷', color: '#1d4ed8' },
+                    { x: -46, y: 44, delay: 0.06, size: 22, char: '⭐', color: '#0f172a' },
+                    { x: 52, y: 46, delay: 0.14, size: 24, char: '✨', color: '#60a5fa' },
+                    { x: 0, y: -68, delay: 0.02, size: 26, char: '🌟', color: '#2563eb' },
+                    { x: -70, y: 2, delay: 0.08, size: 20, char: '💠', color: '#3b82f6' },
+                    { x: 68, y: 8, delay: 0.12, size: 20, char: '✦', color: '#000000' },
                   ].map((sparkle, idx) => (
                     <motion.span
                       key={idx}
@@ -1017,9 +1019,9 @@ export default function App() {
                       }}
                       animate={{
                         opacity: [0, 1, 1, 0],
-                        scale: [0.2, 1.2, 1, 0.3],
+                        scale: [0.2, 1.25, 1, 0.3],
                         x: sparkle.x,
-                        y: sparkle.y - 18,
+                        y: sparkle.y - 20,
                       }}
                       transition={{
                         duration: 0.68,
@@ -1033,46 +1035,50 @@ export default function App() {
                     </motion.span>
                   ))}
 
-                  {/* Central Celebration Pop (Borderless with Staggered Letter-by-Letter Animation) */}
+                  {/* Central Celebration Pop (Borderless, High-Impact Black & Blue Typography with Elastic Squash-Stretch Animation) */}
                   <motion.div
-                    initial={{ scale: 0.85, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: [0.8, 1.05, 1], opacity: 1 }}
                     exit={{ scale: 0.85, opacity: 0 }}
                     transition={{ duration: 0.35, ease: 'easeOut' }}
-                    className="relative z-10 flex flex-col items-center gap-3 select-none pointer-events-none"
+                    className="relative z-10 flex flex-col items-center justify-center select-none pointer-events-none"
                   >
-                    {/* Animated Letters (No border, pure high-impact popping typography) */}
-                    <div className="flex items-center justify-center flex-wrap px-4 py-1">
-                      {Array.from(currentLanguage === 'hi' ? praiseWord.hi : praiseWord.en).map((char, index) => (
-                        <motion.span
-                          key={`${praiseWord.en}-${index}`}
-                          initial={{ opacity: 0, scale: 0.1, y: 32, rotate: index % 2 === 0 ? -12 : 12 }}
-                          animate={{ opacity: 1, scale: [0.1, 1.4, 1], y: 0, rotate: 0 }}
-                          transition={{
-                            duration: 0.42,
-                            delay: index * 0.045,
-                            ease: [0.34, 1.56, 0.64, 1],
-                          }}
-                          className="inline-block text-4xl sm:text-5xl md:text-6xl font-black tracking-wider uppercase bg-gradient-to-br from-blue-600 via-indigo-600 to-red-600 bg-clip-text text-transparent filter drop-shadow-[0_4px_16px_rgba(37,99,235,0.4)]"
-                        >
-                          {char === ' ' ? '\u00A0' : char}
-                        </motion.span>
-                      ))}
+                    {/* Animated Letters (Black & Blue Theme with Elastic Pop & Bounce, No Border, No Level Complete badge) */}
+                    <div className="flex items-center justify-center flex-wrap px-4 py-2">
+                      {Array.from(currentLanguage === 'hi' ? praiseWord.hi : praiseWord.en).map((char, index) => {
+                        const isEven = index % 2 === 0;
+                        return (
+                          <motion.span
+                            key={`${praiseWord.en}-${index}`}
+                            initial={{
+                              opacity: 0,
+                              scale: 0,
+                              y: 45,
+                              rotate: isEven ? -20 : 20,
+                            }}
+                            animate={{
+                              opacity: 1,
+                              scale: [0, 1.52, 0.88, 1.1, 1],
+                              y: [45, -22, 6, -3, 0],
+                              rotate: [isEven ? -20 : 20, isEven ? 8 : -8, isEven ? -2 : 2, 0],
+                            }}
+                            transition={{
+                              duration: 0.52,
+                              delay: index * 0.045,
+                              ease: [0.34, 1.56, 0.64, 1],
+                            }}
+                            style={{ transformOrigin: 'center bottom' }}
+                            className={`inline-block text-5xl sm:text-6xl md:text-7xl font-black tracking-wider uppercase select-none ${
+                              isEven
+                                ? 'bg-gradient-to-b from-neutral-950 via-slate-900 to-blue-700'
+                                : 'bg-gradient-to-b from-blue-600 via-blue-700 to-neutral-950'
+                            } bg-clip-text text-transparent filter drop-shadow-[0_4px_16px_rgba(37,99,235,0.6)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]`}
+                          >
+                            {char === ' ' ? '\u00A0' : char}
+                          </motion.span>
+                        );
+                      })}
                     </div>
-
-                    {/* Clean Borderless Sub-Pill */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 14, scale: 0.8 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ delay: 0.28, duration: 0.35, ease: 'easeOut' }}
-                      className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 shadow-[0_8px_24px_rgba(0,0,0,0.12)] backdrop-blur-md text-xs sm:text-sm font-extrabold text-neutral-800"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-                      <span className="bg-gradient-to-r from-blue-600 to-red-600 bg-clip-text text-transparent font-black tracking-wide">
-                        {currentLanguage === 'hi' ? 'लेवल पूरा हुआ!' : 'LEVEL COMPLETE!'}
-                      </span>
-                      <span className="w-2 h-2 rounded-full bg-red-500" />
-                    </motion.div>
                   </motion.div>
                 </motion.div>
               )}
