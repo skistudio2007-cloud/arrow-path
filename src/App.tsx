@@ -12,7 +12,7 @@ import { GameOverModal } from './components/GameOverModal';
 import { LevelSelectModal } from './components/LevelSelectModal';
 import { RewardedAdModal, RewardType } from './components/RewardedAdModal';
 import { InterstitialAdModal } from './components/InterstitialAdModal';
-import { shouldTriggerInterstitial } from './utils/admob';
+
 import { HowToPlayModal } from './components/HowToPlayModal';
 import { DailyStreakModal } from './components/DailyStreakModal';
 import { SplashScreen } from './components/SplashScreen';
@@ -141,6 +141,7 @@ export default function App() {
     return getLevelById(id);
   });
   const [activeArrows, setActiveArrows] = useState<MazeArrow[]>(() => [...currentLevel.arrows]);
+  const activeArrowIdsRef = useRef<Set<string>>(new Set(currentLevel.arrows.map((a) => a.id)));
   const [lives, setLives] = useState<number>(3);
   const maxLives = 3;
   const [moves, setMoves] = useState<number>(0);
@@ -260,6 +261,7 @@ export default function App() {
     const lvl1 = getLevelById(1);
     setCurrentLevel(lvl1);
     setActiveArrows([...lvl1.arrows]);
+    activeArrowIdsRef.current = new Set(lvl1.arrows.map((a) => a.id));
     setLives(3);
     setMoves(0);
     movesRef.current = 0;
@@ -334,6 +336,7 @@ export default function App() {
   const loadLevel = useCallback((level: LevelData, playSound = false) => {
     setCurrentLevel(level);
     setActiveArrows([...level.arrows]);
+    activeArrowIdsRef.current = new Set(level.arrows.map((a) => a.id));
     setLives(3);
     setMoves(0);
     movesRef.current = 0;
@@ -480,24 +483,23 @@ export default function App() {
     }, cleanupMs);
 
     setTimeout(() => {
-      let isCompleted = false;
+      // Synchronously delete arrow from activeArrowIdsRef
+      activeArrowIdsRef.current.delete(arrow.id);
+      const isLevelFinished = activeArrowIdsRef.current.size === 0;
+
       // Remove escaped arrow from active grid
       setActiveArrows((prev) => {
         const next = prev.filter((a) => a.id !== arrow.id);
-        if (next.length === 0) {
-          isCompleted = true;
-        } else {
-          // Check 25%, 50%, 75% progress milestones with emojis
-          const total = currentLevel.arrows.length;
-          const cleared = total - next.length;
-          if (total >= 4 && next.length > 0) {
-            if (cleared >= Math.ceil(total * 0.75)) {
-              triggerMilestone(75);
-            } else if (cleared >= Math.ceil(total * 0.50)) {
-              triggerMilestone(50);
-            } else if (cleared >= Math.ceil(total * 0.25)) {
-              triggerMilestone(25);
-            }
+        // Check 25%, 50%, 75% progress milestones with emojis
+        const total = currentLevel.arrows.length;
+        const cleared = total - next.length;
+        if (total >= 4 && next.length > 0) {
+          if (cleared >= Math.ceil(total * 0.75)) {
+            triggerMilestone(75);
+          } else if (cleared >= Math.ceil(total * 0.50)) {
+            triggerMilestone(50);
+          } else if (cleared >= Math.ceil(total * 0.25)) {
+            triggerMilestone(25);
           }
         }
         return next;
@@ -509,7 +511,7 @@ export default function App() {
         return next;
       });
 
-      if (isCompleted) {
+      if (isLevelFinished) {
         handleLevelComplete(movesRef.current);
       }
     }, 480);
@@ -595,7 +597,7 @@ export default function App() {
 
     const completedLevelNum = currentLevelId;
 
-    // After pop celebration finishes (~1250ms), advance level and navigate to home screen
+    // After pop celebration finishes (~1250ms), advance level and navigate directly to home screen
     winningAnimTimeoutRef.current = window.setTimeout(() => {
       setShowWinningAnimation(false);
       setIsVictory(false);
@@ -604,23 +606,12 @@ export default function App() {
         const nextId = completedLevelNum + 1;
         setCurrentLevelId(nextId);
         const nextLevel = getLevelById(nextId);
-        loadLevel(nextLevel, true);
+        loadLevel(nextLevel, false);
         try {
           localStorage.setItem('arrowmaze_current_level_id', String(nextId));
         } catch {
           // Ignore
         }
-      }
-
-      // Check interstitial ad if applicable
-      try {
-        const isAdRemoved = localStorage.getItem('arrowgo_remove_ads') === 'true';
-        if (!isAdRemoved && shouldTriggerInterstitial(completedLevelNum)) {
-          setActiveInterstitialLevel(completedLevelNum);
-          return;
-        }
-      } catch {
-        // Ignore
       }
 
       setCurrentScreen('tabs');
@@ -633,6 +624,7 @@ export default function App() {
     soundManager.playTap();
     const previous = history[history.length - 1];
     setActiveArrows(previous.arrows);
+    activeArrowIdsRef.current = new Set(previous.arrows.map((a) => a.id));
     setLives(previous.lives);
     setHistory((prev) => prev.slice(0, -1));
     setMoves((prev) => {
