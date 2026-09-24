@@ -8,7 +8,6 @@ import { HomeScreen } from './components/HomeScreen';
 import { CollectionScreen } from './components/CollectionScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { BottomNavBar, TabType } from './components/BottomNavBar';
-import { VictoryModal } from './components/VictoryModal';
 import { GameOverModal } from './components/GameOverModal';
 import { LevelSelectModal } from './components/LevelSelectModal';
 import { RewardedAdModal, RewardType } from './components/RewardedAdModal';
@@ -516,61 +515,34 @@ export default function App() {
     }, 480);
   };
 
-  const proceedToNextLevel = useCallback(() => {
-    soundManager.playTap();
-    setIsVictory(false);
-    setShowWinningAnimation(false);
-    setActiveInterstitialLevel(null);
-    if (currentLevelId < TOTAL_LEVELS) {
-      const nextId = currentLevelId + 1;
-      setCurrentLevelId(nextId);
-      const nextLevel = getLevelById(nextId);
-      loadLevel(nextLevel, true);
-      try {
-        localStorage.setItem('arrowmaze_current_level_id', String(nextId));
-      } catch {
-        // Ignore
-      }
-    } else {
-      setCurrentScreen('tabs');
-      setActiveTab('home');
-    }
-  }, [currentLevelId, loadLevel]);
-
-  const handleNextLevel = useCallback(() => {
-    try {
-      const isAdRemoved = localStorage.getItem('arrowgo_remove_ads') === 'true';
-      if (!isAdRemoved && shouldTriggerInterstitial(currentLevelId)) {
-        setIsVictory(false);
-        setActiveInterstitialLevel(currentLevelId);
-        return;
-      }
-    } catch {
-      // Ignore
-    }
-    proceedToNextLevel();
-  }, [currentLevelId, proceedToNextLevel]);
-
   const handleLevelComplete = (finalMoves: number) => {
     soundManager.playSuccess();
+    setIsVictory(true);
 
-    // Trigger polished winning animation on the completed level
+    // Trigger celebration pop & animation on the completed level
     setShowWinningAnimation(true);
     try {
       confetti({
-        particleCount: 26,
+        particleCount: 35,
         angle: 60,
-        spread: 45,
-        origin: { x: 0.08, y: 0.65 },
-        colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'],
+        spread: 55,
+        origin: { x: 0.1, y: 0.65 },
+        colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
         disableForReducedMotion: true,
       });
       confetti({
-        particleCount: 26,
+        particleCount: 35,
         angle: 120,
-        spread: 45,
-        origin: { x: 0.92, y: 0.65 },
-        colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'],
+        spread: 55,
+        origin: { x: 0.9, y: 0.65 },
+        colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
+        disableForReducedMotion: true,
+      });
+      confetti({
+        particleCount: 30,
+        spread: 80,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ['#ffd700', '#ff9800', '#10b981', '#06b6d4'],
         disableForReducedMotion: true,
       });
     } catch {
@@ -580,12 +552,6 @@ export default function App() {
     if (winningAnimTimeoutRef.current) {
       clearTimeout(winningAnimTimeoutRef.current);
     }
-
-    // After animation finishes (~750ms), continue existing level-complete flow
-    winningAnimTimeoutRef.current = window.setTimeout(() => {
-      setShowWinningAnimation(false);
-      setIsVictory(true);
-    }, 750);
 
     // Check perfect clear (3 lives intact)
     if (lives === 3) {
@@ -626,6 +592,40 @@ export default function App() {
       }
       return updated;
     });
+
+    const completedLevelNum = currentLevelId;
+
+    // After pop celebration finishes (~1250ms), advance level and navigate to home screen
+    winningAnimTimeoutRef.current = window.setTimeout(() => {
+      setShowWinningAnimation(false);
+      setIsVictory(false);
+
+      if (completedLevelNum < TOTAL_LEVELS) {
+        const nextId = completedLevelNum + 1;
+        setCurrentLevelId(nextId);
+        const nextLevel = getLevelById(nextId);
+        loadLevel(nextLevel, true);
+        try {
+          localStorage.setItem('arrowmaze_current_level_id', String(nextId));
+        } catch {
+          // Ignore
+        }
+      }
+
+      // Check interstitial ad if applicable
+      try {
+        const isAdRemoved = localStorage.getItem('arrowgo_remove_ads') === 'true';
+        if (!isAdRemoved && shouldTriggerInterstitial(completedLevelNum)) {
+          setActiveInterstitialLevel(completedLevelNum);
+          return;
+        }
+      } catch {
+        // Ignore
+      }
+
+      setCurrentScreen('tabs');
+      setActiveTab('home');
+    }, 1250);
   };
 
   const handleUndo = () => {
@@ -1016,6 +1016,22 @@ export default function App() {
                       {sparkle.char}
                     </motion.span>
                   ))}
+                  {/* Central Celebration Pop Badge */}
+                  <motion.div
+                    initial={{ scale: 0.35, opacity: 0, y: 16 }}
+                    animate={{ scale: [0.35, 1.1, 1], opacity: 1, y: 0 }}
+                    exit={{ scale: 0.85, opacity: 0 }}
+                    transition={{ duration: 0.45, ease: [0.175, 0.885, 0.32, 1.275] }}
+                    className="relative z-10 flex flex-col items-center gap-1.5 px-6 py-3.5 rounded-2xl bg-white/95 shadow-[0_12px_36px_rgba(0,0,0,0.18)] border border-emerald-100 backdrop-blur-md"
+                  >
+                    <span className="text-3xl filter drop-shadow-sm select-none">🎉</span>
+                    <span className="text-base font-black tracking-tight text-neutral-800">
+                      {currentLanguage === 'hi' ? 'लेवल पूरा हुआ!' : 'Level Complete!'}
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
+                      {currentLanguage === 'hi' ? 'शानदार!' : 'Great Job!'}
+                    </span>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1055,21 +1071,6 @@ export default function App() {
           </footer>
 
           {/* Gameplay Modals */}
-          <VictoryModal
-            isOpen={isVictory}
-            level={currentLevel}
-            moves={moves}
-            hasNextLevel={currentLevelId < TOTAL_LEVELS}
-            lang={currentLanguage}
-            onNextLevel={handleNextLevel}
-            onReplay={handleRestart}
-            onGoHome={() => {
-              setIsVictory(false);
-              setCurrentScreen('tabs');
-              setActiveTab('home');
-            }}
-          />
-
           <GameOverModal
             isOpen={isGameOver}
             lang={currentLanguage}
@@ -1091,7 +1092,8 @@ export default function App() {
             levelNumber={activeInterstitialLevel || 15}
             onClose={() => {
               setActiveInterstitialLevel(null);
-              proceedToNextLevel();
+              setCurrentScreen('tabs');
+              setActiveTab('home');
             }}
           />
 
