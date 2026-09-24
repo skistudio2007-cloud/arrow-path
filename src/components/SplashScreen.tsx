@@ -65,6 +65,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const arrow3Body = buildFilletedPixelPath(arrow3Points, 8);
   const arrow3Head = buildArrowHeadAtPoint({ x: 76, y: 72 }, { x: 1, y: 0 }, 13);
 
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const arrowMainColor = isDark ? '#f8fafc' : '#0f172a';
+  const arrowAccentColor = isDark ? '#818cf8' : '#4f46e5';
+
   const arrowLetters = ['A', 'R', 'R', 'O', 'W'];
 
   return (
@@ -75,20 +79,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.01, filter: 'blur(4px)' }}
           transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-50 bg-[#ffffff] text-[#0f172a] flex flex-col items-center justify-center select-none overflow-hidden"
+          className="fixed inset-0 z-50 bg-[#ffffff] dark:bg-[#0d111c] text-[#0f172a] dark:text-white flex flex-col items-center justify-center select-none overflow-hidden"
           style={{
-            background: 'radial-gradient(circle at 50% 48%, #ffffff 0%, #f8faff 50%, #eef4fc 100%)',
+            background: isDark
+              ? 'radial-gradient(circle at 50% 48%, #151d2f 0%, #0d111c 60%, #080b12 100%)'
+              : 'radial-gradient(circle at 50% 48%, #ffffff 0%, #f8faff 50%, #eef4fc 100%)',
           }}
         >
           {/* Clean soft ambient lighting blooms - Completely dot-free! */}
-          <div className="absolute w-96 h-96 rounded-full bg-blue-100/40 blur-3xl pointer-events-none" />
-          <div className="absolute w-64 h-64 rounded-full bg-indigo-50/50 blur-2xl pointer-events-none" />
+          <div className="absolute w-96 h-96 rounded-full bg-blue-100/40 dark:bg-blue-900/20 blur-3xl pointer-events-none" />
+          <div className="absolute w-64 h-64 rounded-full bg-indigo-50/50 dark:bg-indigo-950/30 blur-2xl pointer-events-none" />
 
           {/* Main Stage */}
           <div className="relative z-10 flex flex-col items-center justify-center">
-            {/* Center Container: 3 Level Arrows Escaping */}
+            {/* Center Container: 3 Level Arrows Escaping (Borderless Arrow Area) */}
             <div className="relative w-48 h-36 flex items-center justify-center">
-              {/* Sleek Floating Board Card */}
+              {/* Sleek Floating Board Card without any box border */}
               <motion.div
                 animate={{
                   opacity: stage === 'puzzle' ? 1 : 0,
@@ -96,20 +102,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                   y: stage === 'puzzle' ? 0 : -8,
                 }}
                 transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                className="relative w-42 h-34 rounded-3xl bg-white/90 backdrop-blur-sm shadow-xl shadow-blue-500/8 border border-[#e2e8f0]/80 p-2 flex items-center justify-center overflow-visible"
+                className="relative w-42 h-34 rounded-3xl bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl shadow-blue-500/8 border-none p-2 flex items-center justify-center overflow-visible"
               >
                 {/* Soft pulse glow inside the board */}
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0.3 }}
                   animate={{ scale: [0.8, 1.2, 0.9], opacity: [0.3, 0.6, 0.3] }}
                   transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                  className="absolute w-28 h-20 rounded-full bg-blue-50/70 blur-xl pointer-events-none"
+                  className="absolute w-28 h-20 rounded-full bg-blue-50/70 dark:bg-blue-950/50 blur-xl pointer-events-none"
                 />
 
                 <svg
                   viewBox="0 0 160 144"
                   className="w-full h-full overflow-visible"
-                  style={{ filter: 'drop-shadow(0 2px 6px rgba(15, 23, 42, 0.12))' }}
+                  style={{ filter: isDark ? 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6))' : 'drop-shadow(0 2px 6px rgba(15, 23, 42, 0.12))' }}
                 >
                   {/* ARROW 1: Facing UP (↑) - Escapes first with snappy acceleration */}
                   <motion.g
@@ -129,15 +135,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     <path
                       d={arrow1Body}
                       fill="none"
-                      stroke="#0f172a"
+                      stroke={arrowMainColor}
                       strokeWidth="4.2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <path
                       d={arrow1Head}
-                      fill="#0f172a"
-                      stroke="#0f172a"
+                      fill={arrowMainColor}
+                      stroke={arrowMainColor}
                       strokeWidth="1"
                       strokeLinejoin="round"
                     />
@@ -161,15 +167,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     <path
                       d={arrow2Body}
                       fill="none"
-                      stroke="#0f172a"
+                      stroke={arrowMainColor}
                       strokeWidth="4.2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <path
                       d={arrow2Head}
-                      fill="#0f172a"
-                      stroke="#0f172a"
+                      fill={arrowMainColor}
+                      stroke={arrowMainColor}
                       strokeWidth="1"
                       strokeLinejoin="round"
                     />
@@ -193,30 +199,30 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     <path
                       d={arrow3Body}
                       fill="none"
-                      stroke="#4f46e5"
+                      stroke={arrowAccentColor}
                       strokeWidth="4.2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <path
                       d={arrow3Head}
-                      fill="#4f46e5"
-                      stroke="#4f46e5"
+                      fill={arrowAccentColor}
+                      stroke={arrowAccentColor}
                       strokeWidth="1"
                       strokeLinejoin="round"
                     />
                   </motion.g>
                 </svg>
 
-                {/* Subtle success pulse ring right as Arrow 3 clears */}
+                {/* Subtle success pulse bloom right as Arrow 3 clears */}
                 <motion.div
                   initial={{ scale: 0.4, opacity: 0 }}
                   animate={{
                     scale: stage !== 'puzzle' ? [0.6, 1.5] : 0.4,
-                    opacity: stage !== 'puzzle' ? [0.4, 0] : 0,
+                    opacity: stage !== 'puzzle' ? [0.35, 0] : 0,
                   }}
                   transition={{ duration: 0.45, ease: 'easeOut' }}
-                  className="absolute w-24 h-24 rounded-full border border-indigo-400/40 pointer-events-none"
+                  className="absolute w-24 h-24 rounded-full bg-indigo-400/20 blur-sm pointer-events-none"
                 />
               </motion.div>
             </div>
@@ -240,7 +246,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                       stiffness: 440,
                       damping: 22,
                     }}
-                    className="font-classic text-4xl sm:text-5xl font-semibold text-[#0f172a] uppercase inline-block"
+                    className="font-classic text-4xl sm:text-5xl font-semibold text-[#0f172a] dark:text-white uppercase inline-block"
                     style={{
                       letterSpacing: idx === arrowLetters.length - 1 ? '0' : '0.22em',
                     }}
@@ -260,11 +266,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 transition={{ delay: 0.35, duration: 0.35, ease: 'easeOut' }}
                 className="flex items-center gap-2 mt-2"
               >
-                <span className="w-4 h-[1px] bg-[#94a3b8]" />
-                <span className="font-outfit text-[10px] sm:text-[11px] font-medium tracking-[0.28em] text-[#475569] uppercase">
+                <span className="w-4 h-[1px] bg-[#94a3b8] dark:bg-slate-600" />
+                <span className="font-outfit text-[10px] sm:text-[11px] font-medium tracking-[0.28em] text-[#475569] dark:text-slate-400 uppercase">
                   PATH PUZZLE
                 </span>
-                <span className="w-4 h-[1px] bg-[#94a3b8]" />
+                <span className="w-4 h-[1px] bg-[#94a3b8] dark:bg-slate-600" />
               </motion.div>
             </div>
 

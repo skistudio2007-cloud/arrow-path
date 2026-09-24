@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="w-full max-w-md sm:max-w-lg mx-auto px-3 sm:px-4 pt-[max(0.6rem,env(safe-area-inset-top))] pb-1 select-none shrink-0">
       {/* Top Subtle Level Progress Bar */}
-      <div className="w-full h-1 bg-neutral-200/70 rounded-full mb-3 overflow-hidden">
+      <div className="w-full h-1 bg-neutral-200/70 dark:bg-slate-700/60 rounded-full mb-3 overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-300 ease-out"
           style={{ width: `${progressPercent}%` }}
@@ -69,9 +69,9 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onGoHome}
             aria-label="Back to Menu"
             title="Menu"
-            className="w-9 h-9 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-neutral-200/60"
+            className="w-9 h-9 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-neutral-200/60 dark:border-slate-700/60"
           >
-            <ArrowLeft className="w-4.5 h-4.5 text-neutral-700 stroke-[2.2]" />
+            <ArrowLeft className="w-4.5 h-4.5 text-neutral-700 dark:text-neutral-200 stroke-[2.2]" />
           </button>
 
           <button
@@ -80,16 +80,16 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onRestartLevel}
             aria-label="Restart Level"
             title="Restart"
-            className="w-9 h-9 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-neutral-200/60"
+            className="w-9 h-9 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-neutral-200/60 dark:border-slate-700/60"
           >
-            <RotateCcw className="w-4 h-4 text-neutral-700 stroke-[2.2]" />
+            <RotateCcw className="w-4 h-4 text-neutral-700 dark:text-neutral-200 stroke-[2.2]" />
           </button>
         </div>
 
         {/* Center: Clean Level Title & Lives */}
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-1.5">
-            <span className="text-sm sm:text-base font-bold text-neutral-900 tracking-tight">
+            <span className="text-sm sm:text-base font-bold text-neutral-900 dark:text-white tracking-tight">
               {t(lang, 'level')} {currentLevel.id}
             </span>
             {(isHardBossLevel(currentLevel.id) || currentLevel.name.includes('Hard')) && (
@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={hintsCount > 0 ? onHint : (onWatchAdForHint ?? onHint)}
             aria-label={hintsCount > 0 ? `${t(lang, 'hint')} (${hintsCount})` : 'Watch Ad for +1 Hint'}
             title={hintsCount > 0 ? `${t(lang, 'hint')} (${hintsCount})` : 'Watch Ad for +1 Hint'}
-            className="w-9 h-9 rounded-full bg-amber-50 hover:bg-amber-100 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-amber-200/70 text-amber-700 relative"
+            className="w-9 h-9 rounded-full bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-amber-200/70 dark:border-amber-700/60 text-amber-700 dark:text-amber-300 relative"
           >
             <Lightbulb className="w-4.5 h-4.5 stroke-[2.2]" />
             {hintsCount > 0 ? (
@@ -145,12 +145,12 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onToggleSound}
             aria-label={soundEnabled ? 'Mute' : 'Unmute'}
             title={soundEnabled ? 'Mute' : 'Unmute'}
-            className="w-9 h-9 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-neutral-200/60 text-neutral-700"
+            className="w-9 h-9 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 active:scale-95 flex items-center justify-center transition-all cursor-pointer border border-neutral-200/60 dark:border-slate-700/60 text-neutral-700 dark:text-neutral-200"
           >
             {soundEnabled ? (
               <Volume2 className="w-4 h-4 stroke-[2]" />
             ) : (
-              <VolumeX className="w-4 h-4 stroke-[2] text-neutral-400" />
+              <VolumeX className="w-4 h-4 stroke-[2] text-neutral-400 dark:text-neutral-500" />
             )}
           </button>
         </div>

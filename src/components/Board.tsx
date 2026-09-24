@@ -25,6 +25,7 @@ interface BoardProps {
   showTrajectory?: boolean;
   onArrowClick: (arrow: MazeArrow) => void;
   isVictory?: boolean;
+  isDarkMode?: boolean;
 }
 
 const MIN_ZOOM = 0.9; // In-zoom / Out-zoom minimum: 90%
@@ -36,6 +37,7 @@ interface StaticGridDotsProps {
   baseCellSize: number;
   gridDotColor: string;
   isVictory?: boolean;
+  isDarkMode?: boolean;
 }
 
 const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
@@ -44,6 +46,7 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
   baseCellSize,
   gridDotColor,
   isVictory,
+  isDarkMode = false,
 }) => {
   const dotRadius = Math.max(1.8, Math.min(3, baseCellSize * 0.06));
   const centerR = (rows - 1) / 2;
@@ -72,7 +75,7 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
                 }
               : undefined
           }
-          opacity={isVictory ? undefined : "0.30"}
+          opacity={isVictory ? undefined : (isDarkMode ? "0.45" : "0.30")}
         />
       );
     }
@@ -94,6 +97,7 @@ export const Board: React.FC<BoardProps> = ({
   showTrajectory = true,
   onArrowClick,
   isVictory = false,
+  isDarkMode = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -471,7 +475,7 @@ export const Board: React.FC<BoardProps> = ({
     };
   }, []);
 
-  const gridDotColor = theme?.gridDotColor || '#94a3b8';
+  const gridDotColor = isDarkMode ? '#475569' : (theme?.gridDotColor || '#94a3b8');
 
   // Sinking dots overlay: ONLY renders and animates the 3-8 dots that are actually sinking!
   const sinkingDotsOverlay = useMemo(() => {
@@ -564,6 +568,7 @@ export const Board: React.FC<BoardProps> = ({
                 baseCellSize={baseCellSize}
                 gridDotColor={gridDotColor}
                 isVictory={isVictory}
+                isDarkMode={isDarkMode}
               />
               {!isVictory && sinkingDotsOverlay}
             </g>
@@ -594,6 +599,7 @@ export const Board: React.FC<BoardProps> = ({
                 onClick={handleSafeArrowClick}
                 onHoverStart={handleHoverStart}
                 onHoverEnd={handleHoverEnd}
+                isDarkMode={isDarkMode}
               />
             ))}
           </svg>

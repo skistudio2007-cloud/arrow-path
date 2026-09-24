@@ -23,6 +23,7 @@ interface MazeArrowRendererProps {
   onClick: (arrow: MazeArrow) => void;
   onHoverStart?: (arrow: MazeArrow) => void;
   onHoverEnd?: () => void;
+  isDarkMode?: boolean;
 }
 
 export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
@@ -37,6 +38,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   onClick,
   onHoverStart,
   onHoverEnd,
+  isDarkMode = false,
 }) => {
   const groupRef = useRef<SVGGElement>(null);
   const hitPathRef = useRef<SVGPathElement>(null);
@@ -89,7 +91,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   useEffect(() => {
     if (isFlying && flightData) {
       const startTime = performance.now();
-      const duration = 480; // 480ms ultra-smooth slither
+      const duration = 650; // Smooth, clear, readable slither exit
       const totalTravelDistance = originalLength + flightData.exitDistance;
 
       const step = (now: number) => {
@@ -151,13 +153,18 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   const headPath = staticHeadPath;
   const headTip = basePixelPoints[basePixelPoints.length - 1];
 
+  const defaultStrokeColor = isDarkMode ? '#f8fafc' : '#0f172a';
+  const hoverStrokeColor = isDarkMode ? '#ffffff' : '#000000';
+  const hintStrokeColor = isDarkMode ? '#38bdf8' : '#2563eb';
+  const blockedStrokeColor = isDarkMode ? '#f87171' : '#ef4444';
+
   const strokeColor = isBlocked
-    ? '#ef4444' // Red warning flash
+    ? blockedStrokeColor
     : isHinted
-    ? '#2563eb' // Blue pulse on hint
+    ? hintStrokeColor
     : isHovered
-    ? '#000000'
-    : '#0f172a'; // Bold deep slate black
+    ? hoverStrokeColor
+    : defaultStrokeColor;
 
   const arrangeDelay = Math.min(0.45, (index || 0) * 0.028);
 
@@ -197,7 +204,9 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
       }}
       style={{
         transformOrigin: `${centerPoint.x}px ${centerPoint.y}px`,
-        filter: isHovered ? 'drop-shadow(0 2px 4px rgba(15, 23, 42, 0.25))' : 'none',
+        filter: isHovered
+          ? (isDarkMode ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.45))' : 'drop-shadow(0 2px 4px rgba(15, 23, 42, 0.25))')
+          : (isDarkMode ? 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7))' : 'none'),
         willChange: isFlying || isShaking ? 'transform, opacity' : 'auto',
       }}
       className={isFlying ? "pointer-events-none select-none" : "cursor-pointer select-none"}
