@@ -618,7 +618,7 @@ export default function App() {
 
     const completedLevelNum = currentLevelId;
 
-    // After pop celebration finishes (~1250ms), advance level and navigate directly to home screen
+    // After pop celebration finishes (~2400ms), advance level and navigate directly to home screen
     winningAnimTimeoutRef.current = window.setTimeout(() => {
       setShowWinningAnimation(false);
       setIsVictory(false);
@@ -638,7 +638,7 @@ export default function App() {
 
       setCurrentScreen('tabs');
       setActiveTab('home');
-    }, 1250);
+    }, 2400);
   };
 
   const handleUndo = () => {
@@ -980,34 +980,34 @@ export default function App() {
                   {/* Concentric expanding success burst rings (Black & Blue Theme) */}
                   <motion.div
                     initial={{ scale: 0.35, opacity: 0.95 }}
-                    animate={{ scale: 2.2, opacity: 0 }}
-                    transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute w-48 h-48 rounded-full border-2 border-blue-500/90 shadow-[0_0_32px_rgba(59,130,246,0.7)]"
+                    animate={{ scale: 2.35, opacity: 0 }}
+                    transition={{ duration: 1.15, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute w-48 h-48 rounded-full border-2 border-blue-500/90 shadow-[0_0_36px_rgba(59,130,246,0.75)]"
                   />
                   <motion.div
                     initial={{ scale: 0.25, opacity: 0.9 }}
-                    animate={{ scale: 1.7, opacity: 0 }}
-                    transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute w-36 h-36 rounded-full border-2 border-slate-900/80 shadow-[0_0_24px_rgba(15,23,42,0.6)]"
+                    animate={{ scale: 1.85, opacity: 0 }}
+                    transition={{ duration: 1.05, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute w-36 h-36 rounded-full border-2 border-slate-900/80 shadow-[0_0_26px_rgba(15,23,42,0.6)]"
                   />
 
                   {/* Soft ambient center glow with Blue & Deep Slate */}
                   <motion.div
                     initial={{ scale: 0.4, opacity: 0 }}
-                    animate={{ scale: [0.4, 1.25, 0.9], opacity: [0, 0.55, 0] }}
-                    transition={{ duration: 0.72, ease: 'easeOut' }}
+                    animate={{ scale: [0.4, 1.3, 0.95], opacity: [0, 0.55, 0] }}
+                    transition={{ duration: 1.15, ease: 'easeOut' }}
                     className="absolute w-64 h-64 rounded-full bg-gradient-to-tr from-blue-600/35 via-sky-400/25 to-slate-950/20 blur-2xl"
                   />
 
                   {/* Shimmering celebration sparkles floating upward (Black & Blue Theme) */}
                   {[
-                    { x: -60, y: -48, delay: 0.04, size: 24, char: '✨', color: '#2563eb' },
-                    { x: 62, y: -42, delay: 0.1, size: 22, char: '🔷', color: '#1d4ed8' },
-                    { x: -46, y: 44, delay: 0.06, size: 22, char: '⭐', color: '#0f172a' },
-                    { x: 52, y: 46, delay: 0.14, size: 24, char: '✨', color: '#60a5fa' },
-                    { x: 0, y: -68, delay: 0.02, size: 26, char: '🌟', color: '#2563eb' },
-                    { x: -70, y: 2, delay: 0.08, size: 20, char: '💠', color: '#3b82f6' },
-                    { x: 68, y: 8, delay: 0.12, size: 20, char: '✦', color: '#000000' },
+                    { x: -60, y: -48, delay: 0.06, size: 24, char: '✨', color: '#2563eb' },
+                    { x: 62, y: -42, delay: 0.14, size: 22, char: '🔷', color: '#1d4ed8' },
+                    { x: -46, y: 44, delay: 0.08, size: 22, char: '⭐', color: '#0f172a' },
+                    { x: 52, y: 46, delay: 0.18, size: 24, char: '✨', color: '#60a5fa' },
+                    { x: 0, y: -68, delay: 0.04, size: 26, char: '🌟', color: '#2563eb' },
+                    { x: -70, y: 2, delay: 0.12, size: 20, char: '💠', color: '#3b82f6' },
+                    { x: 68, y: 8, delay: 0.16, size: 20, char: '✦', color: '#000000' },
                   ].map((sparkle, idx) => (
                     <motion.span
                       key={idx}
@@ -1021,10 +1021,10 @@ export default function App() {
                         opacity: [0, 1, 1, 0],
                         scale: [0.2, 1.25, 1, 0.3],
                         x: sparkle.x,
-                        y: sparkle.y - 20,
+                        y: sparkle.y - 28,
                       }}
                       transition={{
-                        duration: 0.68,
+                        duration: 1.1,
                         delay: sparkle.delay,
                         ease: [0.22, 1, 0.36, 1],
                       }}
@@ -1037,13 +1037,13 @@ export default function App() {
 
                   {/* Central Celebration Pop (Borderless, High-Impact Black & Blue Typography with Elastic Squash-Stretch Animation) */}
                   <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: [0.8, 1.05, 1], opacity: 1 }}
-                    exit={{ scale: 0.85, opacity: 0 }}
-                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                    initial={{ scale: 0.85, opacity: 0 }}
+                    animate={{ scale: [0.85, 1.04, 1], opacity: 1 }}
+                    exit={{ scale: 1.04, opacity: 0 }}
+                    transition={{ duration: 0.45, ease: 'easeOut' }}
                     className="relative z-10 flex flex-col items-center justify-center select-none pointer-events-none"
                   >
-                    {/* Animated Letters (Black & Blue Theme with Elastic Pop & Bounce, No Border, No Level Complete badge) */}
+                    {/* Animated Letters (Black & Blue Theme with Smooth Elastic Pop & Bounce, No Border, No Level Complete badge) */}
                     <div className="flex items-center justify-center flex-wrap px-4 py-2">
                       {Array.from(currentLanguage === 'hi' ? praiseWord.hi : praiseWord.en).map((char, index) => {
                         const isEven = index % 2 === 0;
@@ -1053,26 +1053,26 @@ export default function App() {
                             initial={{
                               opacity: 0,
                               scale: 0,
-                              y: 45,
-                              rotate: isEven ? -20 : 20,
+                              y: 55,
+                              rotate: isEven ? -18 : 18,
                             }}
                             animate={{
-                              opacity: 1,
-                              scale: [0, 1.52, 0.88, 1.1, 1],
-                              y: [45, -22, 6, -3, 0],
-                              rotate: [isEven ? -20 : 20, isEven ? 8 : -8, isEven ? -2 : 2, 0],
+                              opacity: [0, 1, 1, 1],
+                              scale: [0, 1.45, 0.92, 1.08, 1],
+                              y: [55, -24, 7, -3, 0],
+                              rotate: [isEven ? -18 : 18, isEven ? 6 : -6, isEven ? -2 : 2, 0],
                             }}
                             transition={{
-                              duration: 0.52,
-                              delay: index * 0.045,
-                              ease: [0.34, 1.56, 0.64, 1],
+                              duration: 0.72,
+                              delay: index * 0.072,
+                              ease: [0.34, 1.45, 0.64, 1],
                             }}
                             style={{ transformOrigin: 'center bottom' }}
-                            className={`inline-block text-5xl sm:text-6xl md:text-7xl font-black tracking-wider uppercase select-none ${
+                            className={`inline-block text-5xl sm:text-6xl md:text-7xl font-black tracking-widest uppercase select-none ${
                               isEven
                                 ? 'bg-gradient-to-b from-neutral-950 via-slate-900 to-blue-700'
-                                : 'bg-gradient-to-b from-blue-600 via-blue-700 to-neutral-950'
-                            } bg-clip-text text-transparent filter drop-shadow-[0_4px_16px_rgba(37,99,235,0.6)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]`}
+                                : 'bg-gradient-to-b from-blue-600 via-sky-500 to-neutral-950'
+                            } bg-clip-text text-transparent filter drop-shadow-[0_6px_22px_rgba(37,99,235,0.7)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]`}
                           >
                             {char === ' ' ? '\u00A0' : char}
                           </motion.span>
