@@ -80,7 +80,8 @@ export const Board: React.FC<BoardProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [hoveredArrow, setHoveredArrow] = useState<MazeArrow | null>(null);
-  const [baseCellSize, setBaseCellSize] = useState<number>(36);
+  // Uniform base cell size ensuring identical dot distance and arrow proportions across all levels
+  const baseCellSize = 36;
   const [zoomScale, setZoomScale] = useState<number>(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPinching, setIsPinching] = useState<boolean>(false);
@@ -115,35 +116,6 @@ export const Board: React.FC<BoardProps> = ({
   useEffect(() => {
     panRef.current = pan;
   }, [pan]);
-
-  // Responsive base cell size calculation adapting dynamically to available dimensions
-  useEffect(() => {
-    const updateSize = () => {
-      const container = containerRef.current;
-      const screenW = window.innerWidth;
-      const screenH = window.innerHeight;
-
-      // Available dimensions: dynamically measure parent arena or fallback to responsive window ratios
-      const parentRect = container?.parentElement?.getBoundingClientRect();
-      const availW = parentRect ? Math.max(250, parentRect.width - 24) : Math.min(screenW - 24, 560);
-      const availH = parentRect ? Math.max(260, parentRect.height - 20) : Math.min(screenH * 0.64, 660);
-
-      const maxCellW = Math.floor(availW / cols);
-      const maxCellH = Math.floor(availH / rows);
-
-      // Adaptive cell sizing:
-      // Smaller boards (3-4 cols) get comfortable larger cells (up to 68px) so they don't look tiny with excessive empty space.
-      // Larger dense boards scale down proportionally to fit screen bounds without clipping.
-      const targetMaxCell = Math.min(68, Math.max(36, Math.floor(availW / Math.max(cols, 4.2))));
-      const computed = Math.min(maxCellW, maxCellH, targetMaxCell);
-
-      setBaseCellSize(Math.max(18, computed));
-    };
-
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, [rows, cols]);
 
   // Reset zoom scale and pan when level changes
   useEffect(() => {
