@@ -807,17 +807,24 @@ export default function App() {
   const themeBg = activeTheme?.bgClass || 'bg-white';
 
   return (
-    <div className="w-full h-full min-h-[100dvh] h-[100dvh] overflow-hidden bg-[#edf1fa] flex flex-col items-center justify-start antialiased text-neutral-900 font-sans">
+    <div className={`w-full h-full min-h-[100dvh] h-[100dvh] overflow-hidden ${
+      settings.darkMode ? 'bg-[#090d16] text-white' : 'bg-[#edf1fa] text-neutral-900'
+    } flex flex-col items-center justify-start antialiased font-sans`}>
       {/* App Opening Animation (Splash Screen) */}
       <AnimatePresence>
         {showSplash && (
-          <SplashScreen onComplete={() => setShowSplash(false)} />
+          <SplashScreen
+            onComplete={() => setShowSplash(false)}
+            isDarkMode={settings.darkMode}
+          />
         )}
       </AnimatePresence>
 
       {currentScreen === 'tabs' ? (
         /* MAIN TABS CONTAINER (Mobile app frame) */
-        <div className="w-full max-w-md sm:max-w-lg min-h-screen min-h-[100dvh] h-[100dvh] mx-auto flex flex-col justify-between relative bg-[#edf1fa] overflow-hidden">
+        <div className={`w-full max-w-md sm:max-w-lg min-h-screen min-h-[100dvh] h-[100dvh] mx-auto flex flex-col justify-between relative ${
+          settings.darkMode ? 'bg-[#090d16]' : 'bg-[#edf1fa]'
+        } overflow-hidden`}>
           {/* Active Tab Screen with AnimatePresence */}
           <AnimatePresence mode="wait">
             {activeTab === 'home' && (
@@ -834,6 +841,7 @@ export default function App() {
                   soundManager.playTap();
                   setIsLeaguesOpen(true);
                 }}
+                isDarkMode={settings.darkMode}
               />
             )}
 
@@ -858,6 +866,7 @@ export default function App() {
           <BottomNavBar
             activeTab={activeTab}
             lang={currentLanguage}
+            isDarkMode={settings.darkMode}
             onSelectTab={(tab) => {
               soundManager.playTap();
               setActiveTab(tab);
@@ -867,7 +876,9 @@ export default function App() {
       ) : (
         /* ACTIVE LEVEL GAMEPLAY SCREEN */
         <main
-          className={`min-h-screen min-h-[100dvh] h-[100dvh] w-full max-w-md sm:max-w-lg mx-auto ${themeBg} text-black dark:text-white dark:bg-[#0d111c] flex flex-col justify-between antialiased selection:bg-neutral-200 relative overflow-hidden transition-colors duration-500 shadow-xl`}
+          className={`min-h-screen min-h-[100dvh] h-[100dvh] w-full max-w-md sm:max-w-lg mx-auto ${
+            settings.darkMode ? 'bg-[#0d111c] text-white' : `${themeBg} text-black`
+          } flex flex-col justify-between antialiased selection:bg-neutral-200 relative overflow-hidden transition-colors duration-500 shadow-xl`}
         >
           {/* Top Header */}
           <Header
@@ -884,6 +895,7 @@ export default function App() {
             comboCount={comboCount}
             hintsCount={hintsCount}
             lang={currentLanguage}
+            isDarkMode={settings.darkMode}
             onGoHome={() => setCurrentScreen('tabs')}
             onPreviousLevel={handlePreviousLevel}
             onRestartLevel={handleRestart}
@@ -1086,21 +1098,29 @@ export default function App() {
           </section>
 
           {/* Clean, Minimal Bottom Action Bar */}
-          <footer className="w-full max-w-md sm:max-w-lg mx-auto px-4 sm:px-5 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center justify-between z-20 border-t border-neutral-100/80 dark:border-slate-800/80 bg-white/40 dark:bg-slate-900/60 backdrop-blur-xs shrink-0">
+          <footer className={`w-full max-w-md sm:max-w-lg mx-auto px-4 sm:px-5 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center justify-between z-20 border-t ${
+            settings.darkMode
+              ? 'border-slate-800/80 bg-slate-900/60 text-white'
+              : 'border-neutral-200/80 bg-white/60 text-neutral-900'
+          } backdrop-blur-xs shrink-0`}>
             {/* Level Select */}
             <button
               type="button"
               id="btn-level-select"
               onClick={() => setIsLevelSelectOpen(true)}
               title="All 3,000 Levels"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-neutral-700 dark:text-neutral-200 active:scale-95 transition-all text-xs font-semibold cursor-pointer border border-neutral-200/60 dark:border-slate-700/60"
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl ${
+                settings.darkMode
+                  ? 'bg-slate-800 hover:bg-slate-700 text-neutral-200 border-slate-700/60'
+                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border-neutral-200/80'
+              } active:scale-95 transition-all text-xs font-semibold cursor-pointer border`}
             >
-              <LayoutGrid className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300 stroke-[2.2]" />
+              <LayoutGrid className={`w-3.5 h-3.5 stroke-[2.2] ${settings.darkMode ? 'text-neutral-300' : 'text-neutral-600'}`} />
               <span>{t(currentLanguage, 'levels')}</span>
             </button>
 
             {/* Remaining Arrows Count */}
-            <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 tabular-nums">
+            <span className={`text-xs font-semibold tabular-nums ${settings.darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
               {activeArrows.filter((a) => !flyingArrowIds.has(a.id)).length} {t(currentLanguage, 'arrowsLeft')}
             </span>
 
@@ -1111,9 +1131,13 @@ export default function App() {
               onClick={handleUndo}
               disabled={history.length === 0 || flyingArrowIds.size > 0}
               title="Undo Move"
-              className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-neutral-700 dark:text-neutral-200 active:scale-95 transition-all text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none cursor-pointer border border-neutral-200/60 dark:border-slate-700/60"
+              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-xl ${
+                settings.darkMode
+                  ? 'bg-slate-800 hover:bg-slate-700 text-neutral-200 border-slate-700/60'
+                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border-neutral-200/80'
+              } active:scale-95 transition-all text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none cursor-pointer border`}
             >
-              <RotateCcw className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300 stroke-[2.2]" />
+              <RotateCcw className={`w-3.5 h-3.5 stroke-[2.2] ${settings.darkMode ? 'text-neutral-300' : 'text-neutral-600'}`} />
               <span>{t(currentLanguage, 'undo')}</span>
             </button>
           </footer>

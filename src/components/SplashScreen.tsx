@@ -5,9 +5,10 @@ import { buildArrowHeadAtPoint, buildFilletedPixelPath, PixelPoint } from '../ut
 
 interface SplashScreenProps {
   onComplete: () => void;
+  isDarkMode?: boolean;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
+export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, isDarkMode }) => {
   const [stage, setStage] = useState<'puzzle' | 'arrange' | 'settle'>('puzzle');
   const [isVisible, setIsVisible] = useState<boolean>(true);
 
@@ -65,7 +66,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const arrow3Body = buildFilletedPixelPath(arrow3Points, 8);
   const arrow3Head = buildArrowHeadAtPoint({ x: 76, y: 72 }, { x: 1, y: 0 }, 13);
 
-  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const isDark = isDarkMode ?? (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'));
   const arrowMainColor = isDark ? '#f8fafc' : '#0f172a';
   const arrowAccentColor = isDark ? '#818cf8' : '#4f46e5';
 

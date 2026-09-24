@@ -14,6 +14,7 @@ interface HomeScreenProps {
   onPlayLevel: (levelId: number) => void;
   onOpenStreak: () => void;
   onOpenLeagues: () => void;
+  isDarkMode?: boolean;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -25,6 +26,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onPlayLevel,
   onOpenStreak,
   onOpenLeagues,
+  isDarkMode = false,
 }) => {
   const [displayedLevel, setDisplayedLevel] = useState<number>(() => {
     return slideFromLevelId != null ? slideFromLevelId : currentLevelId;
@@ -60,7 +62,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           title="Daily Streak Tracker"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.94 }}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#f0f3fa] hover:bg-[#e4ebf7] dark:bg-slate-800/90 dark:hover:bg-slate-700 text-[#4b5978] dark:text-slate-300 transition-colors cursor-pointer shadow-2xs border border-[#e1e7f5] dark:border-slate-700/60"
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full ${
+            isDarkMode
+              ? 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-slate-700/60'
+              : 'bg-[#f0f3fa] hover:bg-[#e4ebf7] text-[#4b5978] border-[#e1e7f5]'
+          } transition-colors cursor-pointer shadow-2xs border`}
         >
           {/* Animated Flame */}
           <motion.span
@@ -77,7 +83,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           >
             🔥
           </motion.span>
-          <span className="font-semibold text-xs sm:text-sm text-[#384461] dark:text-slate-200">
+          <span className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-slate-200' : 'text-[#384461]'}`}>
             {streakData.currentStreak || 1} {t(lang, 'dayStreak')}
           </span>
         </motion.button>
@@ -90,7 +96,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           title="Leagues Arena (Bronze Rank #12)"
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
-          className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-700/60 shadow-2xs cursor-pointer transition-all"
+          className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+            isDarkMode
+              ? 'bg-gradient-to-r from-amber-950/40 to-orange-950/40 text-amber-200 border-amber-700/60'
+              : 'bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-900 border-amber-200/80'
+          } border shadow-2xs cursor-pointer transition-all`}
         >
           {/* Animated Trophy Shape */}
           <motion.div
@@ -106,7 +116,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           >
             <Trophy className="w-4 h-4 text-amber-600 fill-amber-400 stroke-[2.2]" />
           </motion.div>
-          <span className="font-extrabold text-xs text-amber-950 dark:text-amber-200 tracking-tight">
+          <span className={`font-extrabold text-xs ${isDarkMode ? 'text-amber-200' : 'text-amber-950'} tracking-tight`}>
             #12
           </span>
           {/* Pulsing indicator dot */}
@@ -124,7 +134,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           className="flex flex-col items-center"
         >
           <h1
-            className="font-classic text-4xl sm:text-5xl font-semibold tracking-[0.22em] text-[#0f172a] dark:text-white uppercase select-none"
+            className={`font-classic text-4xl sm:text-5xl font-semibold tracking-[0.22em] ${isDarkMode ? 'text-white' : 'text-[#0f172a]'} uppercase select-none`}
             style={{
               letterSpacing: '0.22em',
             }}
@@ -132,17 +142,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             ARROW
           </h1>
           <div className="flex items-center gap-2 mt-1.5 opacity-80">
-            <span className="w-4 h-[1px] bg-[#94a3b8] dark:bg-slate-600" />
-            <span className="font-outfit text-[10px] sm:text-[11px] font-medium tracking-[0.28em] text-[#475569] dark:text-slate-400 uppercase">
+            <span className={`w-4 h-[1px] ${isDarkMode ? 'bg-slate-600' : 'bg-[#94a3b8]'}`} />
+            <span className={`font-outfit text-[10px] sm:text-[11px] font-medium tracking-[0.28em] ${isDarkMode ? 'text-slate-400' : 'text-[#475569]'} uppercase`}>
               {t(lang, 'pathPuzzle')}
             </span>
-            <span className="w-4 h-[1px] bg-[#94a3b8] dark:bg-slate-600" />
+            <span className={`w-4 h-[1px] ${isDarkMode ? 'bg-slate-600' : 'bg-[#94a3b8]'}`} />
           </div>
         </motion.div>
 
         {/* Level Number with Animated Slide Transition */}
         <div className="flex flex-col items-center mt-6">
-          <div className="flex items-center justify-center font-outfit text-xl sm:text-2xl font-bold text-[#4f46e5] dark:text-[#818cf8] tracking-wide h-10 overflow-hidden relative">
+          <div className={`flex items-center justify-center font-outfit text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-[#818cf8]' : 'text-[#4f46e5]'} tracking-wide h-10 overflow-hidden relative`}>
             <span className="mr-2">{t(lang, 'level')}</span>
             <div className="relative h-10 overflow-hidden flex items-center min-w-[32px] justify-center">
               <AnimatePresence mode="popLayout" initial={false}>
