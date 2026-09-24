@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Trophy } from 'lucide-react';
 import { StreakData } from '../utils/streak';
 import { isHardBossLevel } from '../utils/levels';
@@ -7,6 +7,8 @@ import { LanguageCode, t } from '../utils/translations';
 
 interface HomeScreenProps {
   currentLevelId: number;
+  slideFromLevelId?: number | null;
+  onClearSlide?: () => void;
   streakData: StreakData;
   lang?: LanguageCode;
   onPlayLevel: (levelId: number) => void;
@@ -16,12 +18,30 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   currentLevelId,
+  slideFromLevelId = null,
+  onClearSlide,
   streakData,
   lang = 'en',
   onPlayLevel,
   onOpenStreak,
   onOpenLeagues,
 }) => {
+  const [displayedLevel, setDisplayedLevel] = useState<number>(() => {
+    return slideFromLevelId != null ? slideFromLevelId : currentLevelId;
+  });
+
+  useEffect(() => {
+    if (slideFromLevelId != null && slideFromLevelId !== currentLevelId) {
+      setDisplayedLevel(slideFromLevelId);
+      const timer = window.setTimeout(() => {
+        setDisplayedLevel(currentLevelId);
+        onClearSlide?.();
+      }, 400);
+      return () => clearTimeout(timer);
+    } else {
+      setDisplayedLevel(currentLevelId);
+    }
+  }, [slideFromLevelId, currentLevelId, onClearSlide]);
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -120,24 +140,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         </motion.div>
 
-        {/* Level Number */}
-        <motion.div
-          key={currentLevelId}
-          initial={{ opacity: 0, y: 6, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="flex flex-col items-center mt-6"
-        >
-          <p className="font-outfit text-xl sm:text-2xl font-semibold text-[#4f46e5] tracking-wide">
-            {t(lang, 'level')} {currentLevelId}
-          </p>
-          {isHardBossLevel(currentLevelId) && (
+        {/* Level Number with Animated Slide Transition */}
+        <div className="flex flex-col items-center mt-6">
+          <div className="flex items-center justify-center font-outfit text-xl sm:text-2xl font-bold text-[#4f46e5] tracking-wide h-10 overflow-hidden relative">
+            <span className="mr-2">{t(lang, 'level')}</span>
+            <div className="relative h-10 overflow-hidden flex items-center min-w-[32px] justify-center">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={displayedLevel}
+                  initial={{ y: 32, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -32, opacity: 0 }}
+                  transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
+                  className="inline-block tabular-nums font-black"
+                >
+                  {displayedLevel}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+          </div>
+          {isHardBossLevel(displayedLevel) && (
             <span className="mt-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-red-600 text-white font-medium text-[11px] tracking-wider uppercase shadow-sm flex items-center gap-1 animate-pulse">
               <span>🔥</span>
               <span>{t(lang, 'hardLevel')}</span>
             </span>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Big Continue Button with Breathing Glow & Spring Tap */}
