@@ -1033,33 +1033,46 @@ export default function App() {
                     </motion.span>
                   ))}
 
-                  {/* Central Celebration Pop Badge (White, Blue, Red Pop Theme with GOOD/FANTASTIC/SUPERB/WOW) */}
+                  {/* Central Celebration Pop (Borderless with Staggered Letter-by-Letter Animation) */}
                   <motion.div
-                    initial={{ scale: 0.3, opacity: 0, y: 20 }}
-                    animate={{ scale: [0.3, 1.15, 1], opacity: 1, y: 0 }}
+                    initial={{ scale: 0.85, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.85, opacity: 0 }}
-                    transition={{ duration: 0.45, ease: [0.175, 0.885, 0.32, 1.275] }}
-                    className="relative z-10 flex flex-col items-center gap-2 px-7 py-4 rounded-3xl bg-white/98 shadow-[0_20px_50px_rgba(37,99,235,0.28),0_4px_20px_rgba(239,68,68,0.2)] border-2 border-blue-500/80 backdrop-blur-md"
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                    className="relative z-10 flex flex-col items-center gap-3 select-none pointer-events-none"
                   >
-                    {/* Top Accent Strip: Blue to White to Red */}
-                    <div className="absolute -top-1.5 inset-x-8 h-1 rounded-full bg-gradient-to-r from-blue-600 via-white to-red-500 shadow-sm" />
-
-                    {/* Big Praise Word (GOOD!, FANTASTIC!, SUPERB!, WOW!, AMAZING!) */}
-                    <motion.div
-                      initial={{ scale: 0.8, rotate: -2 }}
-                      animate={{ scale: [0.8, 1.15, 1], rotate: [-2, 2, 0] }}
-                      transition={{ delay: 0.08, duration: 0.4 }}
-                      className="text-2xl sm:text-3xl font-black tracking-wider uppercase bg-gradient-to-r from-blue-600 via-indigo-600 to-red-600 bg-clip-text text-transparent filter drop-shadow-xs select-none"
-                    >
-                      {currentLanguage === 'hi' ? praiseWord.hi : praiseWord.en}
-                    </motion.div>
-
-                    {/* Sub-label badge with Level Complete */}
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-blue-50 via-white to-red-50 border border-blue-200/80 text-[11px] font-bold text-neutral-800 shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
-                      <span>{currentLanguage === 'hi' ? 'लेवल पूरा हुआ!' : 'Level Complete!'}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    {/* Animated Letters (No border, pure high-impact popping typography) */}
+                    <div className="flex items-center justify-center flex-wrap px-4 py-1">
+                      {Array.from(currentLanguage === 'hi' ? praiseWord.hi : praiseWord.en).map((char, index) => (
+                        <motion.span
+                          key={`${praiseWord.en}-${index}`}
+                          initial={{ opacity: 0, scale: 0.1, y: 32, rotate: index % 2 === 0 ? -12 : 12 }}
+                          animate={{ opacity: 1, scale: [0.1, 1.4, 1], y: 0, rotate: 0 }}
+                          transition={{
+                            duration: 0.42,
+                            delay: index * 0.045,
+                            ease: [0.34, 1.56, 0.64, 1],
+                          }}
+                          className="inline-block text-4xl sm:text-5xl md:text-6xl font-black tracking-wider uppercase bg-gradient-to-br from-blue-600 via-indigo-600 to-red-600 bg-clip-text text-transparent filter drop-shadow-[0_4px_16px_rgba(37,99,235,0.4)]"
+                        >
+                          {char === ' ' ? '\u00A0' : char}
+                        </motion.span>
+                      ))}
                     </div>
+
+                    {/* Clean Borderless Sub-Pill */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 14, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.28, duration: 0.35, ease: 'easeOut' }}
+                      className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 shadow-[0_8px_24px_rgba(0,0,0,0.12)] backdrop-blur-md text-xs sm:text-sm font-extrabold text-neutral-800"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                      <span className="bg-gradient-to-r from-blue-600 to-red-600 bg-clip-text text-transparent font-black tracking-wide">
+                        {currentLanguage === 'hi' ? 'लेवल पूरा हुआ!' : 'LEVEL COMPLETE!'}
+                      </span>
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                    </motion.div>
                   </motion.div>
                 </motion.div>
               )}
