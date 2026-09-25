@@ -12,6 +12,8 @@ import { GameOverModal } from './components/GameOverModal';
 import { LevelSelectModal } from './components/LevelSelectModal';
 import { RewardedAdModal, RewardType } from './components/RewardedAdModal';
 import { InterstitialAdModal } from './components/InterstitialAdModal';
+import { shouldTriggerInterstitial } from './utils/admob';
+import { showRewardedVideoAd, showInterstitialAd } from './utils/admobService';
 
 import { HowToPlayModal } from './components/HowToPlayModal';
 import { DailyStreakModal } from './components/DailyStreakModal';
@@ -636,8 +638,25 @@ export default function App() {
         }
       }
 
-      setCurrentScreen('tabs');
-      setActiveTab('home');
+      let isRemoveAds = false;
+      try {
+        isRemoveAds = localStorage.getItem('arrowgo_remove_ads') === 'true';
+      } catch {}
+
+      if (shouldTriggerInterstitial(completedLevelNum) && !isRemoveAds) {
+        showInterstitialAd(
+          () => {
+            setCurrentScreen('tabs');
+            setActiveTab('home');
+          },
+          () => {
+            setActiveInterstitialLevel(completedLevelNum);
+          }
+        );
+      } else {
+        setCurrentScreen('tabs');
+        setActiveTab('home');
+      }
     }, 2400);
   };
 
@@ -729,7 +748,10 @@ export default function App() {
         return;
       }
     } catch {}
-    setActiveAdReward('life');
+    showRewardedVideoAd(
+      () => handleRewardGranted('life'),
+      () => setActiveAdReward('life')
+    );
   };
 
   const handleWatchAdForHint = () => {
@@ -739,7 +761,10 @@ export default function App() {
         return;
       }
     } catch {}
-    setActiveAdReward('hint');
+    showRewardedVideoAd(
+      () => handleRewardGranted('hint'),
+      () => setActiveAdReward('hint')
+    );
   };
 
   const handleRewardGranted = (type: RewardType) => {
@@ -750,6 +775,7 @@ export default function App() {
       setRewardToast('❤️ +1 Extra Life Granted!');
       setTimeout(() => setRewardToast(null), 3000);
     } else if (type === 'hint') {
+      // Exactly 1 hint added to inventory
       setHintsCount((prev) => {
         const next = prev + 1;
         try {
@@ -760,18 +786,8 @@ export default function App() {
         return next;
       });
       soundManager.playReward();
-      setRewardToast('💡 +1 Free Hint Granted!');
+      setRewardToast('💡 +1 Free Hint Added!');
       setTimeout(() => setRewardToast(null), 3000);
-
-      // Automatically reveal a solvable arrow!
-      const staticArrows = activeArrows.filter((a) => !flyingArrowIds.has(a.id));
-      const escapable = getSolvableArrows(staticArrows, currentLevel.rows, currentLevel.cols);
-      if (escapable.length > 0) {
-        setHintArrowId(escapable[0].id);
-        setTimeout(() => {
-          setHintArrowId((curr) => (curr === escapable[0].id ? null : curr));
-        }, 3500);
-      }
     }
   };
 
@@ -858,6 +874,16 @@ export default function App() {
                 onUpdateSettings={handleUpdateSettings}
                 onResetProgress={handleResetProgress}
                 onOpenHowToPlay={() => setIsHowToPlayOpen(true)}
+                onTestRewardedAd={() => handleWatchAdForHint()}
+                onTestInterstitialAd={() => {
+                  showInterstitialAd(
+                    () => {
+                      setRewardToast('🎬 Interstitial Ad Completed!');
+                      setTimeout(() => setRewardToast(null), 2500);
+                    },
+                    () => setActiveInterstitialLevel(15)
+                  );
+                }}
               />
             )}
           </AnimatePresence>

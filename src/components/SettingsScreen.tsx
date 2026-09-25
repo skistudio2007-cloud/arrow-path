@@ -17,6 +17,7 @@ import {
   Trash2,
   Check,
   HelpCircle,
+  Tv,
 } from 'lucide-react';
 import { GameSettings } from './SettingsModal';
 import { THEMES } from '../utils/levels';
@@ -31,6 +32,8 @@ interface SettingsScreenProps {
   onSelectLanguage: (lang: LanguageCode) => void;
   onResetProgress: () => void;
   onOpenHowToPlay: () => void;
+  onTestRewardedAd?: () => void;
+  onTestInterstitialAd?: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -40,6 +43,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onSelectLanguage,
   onResetProgress,
   onOpenHowToPlay,
+  onTestRewardedAd,
+  onTestInterstitialAd,
 }) => {
   const [accountConnected, setAccountConnected] = useState<boolean>(() => {
     try {
@@ -359,6 +364,51 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           >
             <RotateCcw className="w-5 h-5 text-[#425070]" />
             <span className="font-bold text-sm">{t(currentLanguage, 'restorePurchases')}</span>
+          </div>
+        </div>
+
+        {/* Card: Google AdMob Test Ads */}
+        <div className="bg-[#f8faff] rounded-2xl border border-[#e5ebf7] shadow-2xs divide-y divide-[#edf1f9] overflow-hidden">
+          <div className="px-3.5 py-2.5 bg-[#eef4ff] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-700 border border-amber-500/30">
+                AdMob
+              </span>
+              <span className="font-extrabold text-xs text-[#2c3858]">Google AdMob Test Ads</span>
+            </div>
+            <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              Active
+            </span>
+          </div>
+
+          {/* Test Rewarded Video */}
+          <div
+            onClick={onTestRewardedAd}
+            className="flex items-center justify-between p-3.5 hover:bg-[#f1f5fc] transition-colors cursor-pointer text-[#2c3858]"
+          >
+            <div className="flex items-center gap-3">
+              <Tv className="w-5 h-5 text-[#425070]" />
+              <div className="flex flex-col">
+                <span className="font-bold text-sm">Test Rewarded Video</span>
+                <span className="text-[11px] text-[#8694b2] font-medium">Watch test ad to earn +1 Hint</span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#8694b2]" />
+          </div>
+
+          {/* Test Interstitial Ad */}
+          <div
+            onClick={onTestInterstitialAd}
+            className="flex items-center justify-between p-3.5 hover:bg-[#f1f5fc] transition-colors cursor-pointer text-[#2c3858]"
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-[#425070]" />
+              <div className="flex flex-col">
+                <span className="font-bold text-sm">Test Interstitial Ad</span>
+                <span className="text-[11px] text-[#8694b2] font-medium">Full-screen test ad (Level 15, 20, 25...)</span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#8694b2]" />
           </div>
         </div>
 
