@@ -7,6 +7,18 @@ import {
   MazeArrow,
   ThemeConfig,
 } from '../types';
+import pregeneratedLevelsRaw from '../data/pregeneratedLevels.json';
+
+const PREGENERATED_LEVELS_MAP = pregeneratedLevelsRaw as unknown as Record<
+  string,
+  {
+    id: number;
+    rows: number;
+    cols: number;
+    difficulty: LevelDifficulty;
+    arrows: { id: string; dir: Direction; points: GridCoord[]; shape?: ArrowShape }[];
+  }
+>;
 
 export const TOTAL_LEVELS = 3000;
 
@@ -1613,6 +1625,31 @@ export function getLevelById(levelId: number): LevelData {
     return levelCache.get(normalizedId)!;
   }
 
+  // 1. FAST PATH: Instant 0ms load from pre-generated dataset (ZERO CPU load!)
+  const pregen = PREGENERATED_LEVELS_MAP[String(normalizedId)];
+  if (pregen) {
+    const isHard = isHardBossLevel(normalizedId);
+    const loadedLevel: LevelData = {
+      id: normalizedId,
+      name: isHard ? `Hard Level ${normalizedId}` : `Level ${normalizedId}`,
+      rows: pregen.rows,
+      cols: pregen.cols,
+      arrows: pregen.arrows.map((a) => ({
+        id: a.id,
+        dir: a.dir,
+        points: a.points,
+        shape: a.shape,
+      })),
+      difficulty: pregen.difficulty,
+      theme: getThemeForLevel(normalizedId),
+      minMoves: pregen.arrows.length,
+      complexityScore: Math.round(pregen.arrows.length * 1.5 + pregen.rows),
+    };
+    levelCache.set(normalizedId, loadedLevel);
+    return loadedLevel;
+  }
+
+  // 2. FALLBACK PATH for levels beyond pre-generated pool
   const isHard = isHardBossLevel(normalizedId);
   const sourceId = getMappedSourceLevelId(normalizedId);
   const generated = generateDeterministicMazeLevel(sourceId);
