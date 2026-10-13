@@ -8,6 +8,7 @@ interface GameOverModalProps {
   lang?: LanguageCode;
   onRestart: () => void;
   onWatchAdForLife: () => void;
+  hasRemovedAds?: boolean;
 }
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -15,6 +16,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   lang = 'en',
   onRestart,
   onWatchAdForLife,
+  hasRemovedAds = false,
 }) => {
   return (
     <AnimatePresence>
@@ -39,18 +41,18 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             </p>
 
             <div className="flex flex-col gap-2.5 mt-6">
-              {/* Primary: Watch Ad for +1 Life */}
+              {/* Primary: Get +1 Life (Watch Ad or Instant Free if Ads Removed) */}
               <button
                 type="button"
                 id="btn-watch-ad-life"
                 onClick={onWatchAdForLife}
                 className="w-full py-3.5 px-4 bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white text-sm font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-rose-500/25"
               >
-                <span className="text-base">📺</span>
+                {!hasRemovedAds && <span className="text-base">📺</span>}
                 <Heart className="w-4 h-4 fill-white text-white" />
-                <span>{t(lang, 'watchAdLife')}</span>
+                <span>{hasRemovedAds ? '+1 Extra Life' : t(lang, 'watchAdLife')}</span>
                 <span className="ml-1 text-[10px] uppercase font-extrabold tracking-wider bg-white/20 px-1.5 py-0.5 rounded-full">
-                  {t(lang, 'free')}
+                  {hasRemovedAds ? 'No Ads' : t(lang, 'free')}
                 </span>
               </button>
 

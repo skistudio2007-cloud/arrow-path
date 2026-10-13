@@ -20,11 +20,19 @@ export function isNativeAdMobAvailable(): boolean {
  * Shows a rewarded video ad.
  * Tries native Google AdMob test ad on Android first.
  * If native is unavailable or fails, falls back to web simulation modal.
+ * If Remove Ads is active, instantly grants reward without showing any ad.
  */
 export async function showRewardedVideoAd(
   onReward: () => void,
   fallbackToModal: () => void
 ): Promise<void> {
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('arrowgo_remove_ads') === 'true') {
+      onReward();
+      return;
+    }
+  } catch {}
+
   if (isNativeAdMobAvailable()) {
     try {
       const w = window as any;
@@ -48,11 +56,19 @@ export async function showRewardedVideoAd(
  * Shows an interstitial ad.
  * Tries native Google AdMob test ad on Android first.
  * If native is unavailable or fails, falls back to web simulation modal.
+ * If Remove Ads is active, instantly skips without showing any ad.
  */
 export async function showInterstitialAd(
   onDismiss: () => void,
   fallbackToModal: () => void
 ): Promise<void> {
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('arrowgo_remove_ads') === 'true') {
+      onDismiss();
+      return;
+    }
+  } catch {}
+
   if (isNativeAdMobAvailable()) {
     try {
       const w = window as any;

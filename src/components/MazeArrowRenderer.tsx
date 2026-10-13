@@ -1,15 +1,17 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { MazeArrow } from '../types';
+import { MazeArrow, ArrowTheme } from '../types';
 import { DIR_VECTORS } from '../utils/levels';
 import {
   buildArrowHeadAtPoint,
   buildExtendedSnakePath,
   buildFilletedPixelPath,
+  buildPolylinePixelPath,
   getPolylineLengths,
   gridToPixelPoints,
   slicePolyline,
 } from '../utils/snakeGeometry';
+import { getArrowFlightPalette, FLIGHT_PALETTES } from '../utils/flightThemes';
 
 interface MazeArrowRendererProps {
   arrow: MazeArrow;
@@ -24,6 +26,48 @@ interface MazeArrowRendererProps {
   onHoverStart?: (arrow: MazeArrow) => void;
   onHoverEnd?: () => void;
   isDarkMode?: boolean;
+  arrowTheme?: ArrowTheme;
+}
+
+// Beautiful vibrant multi-color arrow theme palette with distinct harmonious shades
+const MULTICOLOR_PALETTE = [
+  '#3b82f6', // Vivid Royal Blue
+  '#10b981', // Emerald Green
+  '#f59e0b', // Amber Orange
+  '#ec4899', // Hot Pink
+  '#8b5cf6', // Violet Purple
+  '#06b6d4', // Bright Cyan
+  '#f97316', // Coral Orange
+  '#14b8a6', // Teal
+  '#6366f1', // Indigo
+  '#e11d48', // Ruby Rose
+];
+
+// Vibrant multi-color rainbow gradients inside each individual arrow!
+const GRADIENT_PALETTES = [
+  // Rainbow Spectrum: Pink -> Violet -> Cyan -> Emerald -> Amber
+  ['#ec4899', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'],
+  // Neon Sunset: Purple -> Rose -> Orange -> Amber
+  ['#7c3aed', '#f43f5e', '#fb923c', '#facc15'],
+  // Cosmic Aurora: Electric Indigo -> Cyan -> Teal -> Lime
+  ['#4f46e5', '#06b6d4', '#14b8a6', '#84cc16'],
+  // Fire Blossom: Crimson -> Coral -> Gold -> Lemon
+  ['#e11d48', '#f97316', '#f59e0b', '#fde047'],
+  // Tropical Lagoon: Teal -> Cyan -> Sky Blue -> Violet
+  ['#0d9488', '#06b6d4', '#38bdf8', '#818cf8'],
+];
+
+// Extract stable numeric index from arrow.id so colors NEVER shift when other arrows exit
+function getArrowStablePaletteIndex(arrowId: string, fallbackIndex = 0): number {
+  const match = arrowId.match(/\d+$/);
+  if (match) {
+    return Math.abs(parseInt(match[0], 10) - 1) % MULTICOLOR_PALETTE.length;
+  }
+  let hash = 0;
+  for (let i = 0; i < arrowId.length; i++) {
+    hash = (hash * 31 + arrowId.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash + fallbackIndex) % MULTICOLOR_PALETTE.length;
 }
 
 export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
@@ -39,15 +83,34 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   onHoverStart,
   onHoverEnd,
   isDarkMode = false,
+  arrowTheme = 'classic',
 }) => {
   const groupRef = useRef<SVGGElement>(null);
   const hitPathRef = useRef<SVGPathElement>(null);
   const bodyPathRef = useRef<SVGPathElement>(null);
   const headPathRef = useRef<SVGPathElement>(null);
+  const flightGradRef = useRef<SVGLinearGradientElement>(null);
   const animFrameRef = useRef<number | null>(null);
 
   // Direction vectors
   const { dr, dc } = DIR_VECTORS[arrow.dir];
+
+  // Stable palette index tied permanently to this arrow's ID
+  const stablePaletteIdx = useMemo(() => {
+    return getArrowStablePaletteIndex(arrow.id, index);
+  }, [arrow.id, index]);
+
+  // Flight palette for this arrow:
+  // In multicolor theme, match arrow's assigned color perfectly; otherwise use curated palette
+  const flightGradientId = useMemo(() => `flight-grad-${arrow.id}`, [arrow.id]);
+  const flightPalette = useMemo(() => {
+    if (arrowTheme === 'multicolor') {
+      const paletteMap = [0, 3, 5, 2, 1, 4, 5, 7, 6, 2];
+      const pIdx = paletteMap[stablePaletteIdx % paletteMap.length];
+      return FLIGHT_PALETTES[pIdx];
+    }
+    return getArrowFlightPalette(arrow.id, stablePaletteIdx);
+  }, [arrow.id, stablePaletteIdx, arrowTheme]);
 
   // Precompute static base points & lengths (memoized per arrow + cellSize)
   const basePixelPoints = useMemo(() => {
@@ -75,11 +138,11 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   // Flight data (extended path & cumulative lengths) computed lazily ONLY when this arrow flies
   const flightData = useMemo(() => {
     if (!isFlying) return null;
-    const exitDist = Math.max(900, cellSize * 25);
-    const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist);
+    const exitDist = Math.max(450, cellSize * 11);
+    const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist, cornerRadius);
     const lengths = getPolylineLengths(pts);
     return { pts, lengths, exitDistance: exitDist };
-  }, [isFlying, arrow.points, arrow.dir, cellSize]);
+  }, [isFlying, arrow.points, arrow.dir, cellSize, cornerRadius]);
 
   const centerPoint = useMemo(() => ({
     x: basePixelPoints.reduce((acc, p) => acc + p.x, 0) / Math.max(1, basePixelPoints.length),
@@ -88,20 +151,18 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
 
   // High-performance direct-DOM parametric Snake slithering animation loop
   // Zero React state updates / zero React re-renders during flight!
+  // Exact 0.40s (400ms) flight with natural harmonic acceleration & deceleration!
   useEffect(() => {
     if (isFlying && flightData) {
       const startTime = performance.now();
-      const duration = 650; // Smooth, clear, readable slither exit
+      const duration = 400; // Calibrated to exactly 0.40 seconds!
       const totalTravelDistance = originalLength + flightData.exitDistance;
 
       const step = (now: number) => {
         const elapsed = now - startTime;
         const rawProgress = Math.min(1, elapsed / duration);
-        // Premium Apple-smooth ease curve: [0.25, 1, 0.5, 1]
-        const eased =
-          rawProgress < 0.5
-            ? 2 * rawProgress * rawProgress
-            : -1 + (4 - 2 * rawProgress) * rawProgress;
+        // Harmonic cosine easing curve: natural continuous acceleration and deceleration
+        const eased = (1 - Math.cos(rawProgress * Math.PI)) / 2;
 
         const travelDist = eased * totalTravelDistance;
         const startDist = travelDist;
@@ -109,8 +170,9 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
 
         const sliced = slicePolyline(flightData.pts, startDist, endDist, flightData.lengths);
         if (sliced.points.length >= 2) {
-          const newBodyPath = buildFilletedPixelPath(sliced.points, cornerRadius);
+          const newBodyPath = buildPolylinePixelPath(sliced.points);
           const newHeadTip = sliced.points[sliced.points.length - 1];
+          const newTail = sliced.points[0];
           const newHeadPath = buildArrowHeadAtPoint(newHeadTip, sliced.headTangent, arrowHeadSize);
 
           if (bodyPathRef.current) {
@@ -123,13 +185,17 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
             headPathRef.current.setAttribute('d', newHeadPath);
             headPathRef.current.style.transformOrigin = `${newHeadTip.x}px ${newHeadTip.y}px`;
           }
+
+          // Dynamically track flight gradient from tail (light) to head (dark)!
+          if (flightGradRef.current) {
+            flightGradRef.current.setAttribute('x1', `${newTail.x}`);
+            flightGradRef.current.setAttribute('y1', `${newTail.y}`);
+            flightGradRef.current.setAttribute('x2', `${newHeadTip.x}`);
+            flightGradRef.current.setAttribute('y2', `${newHeadTip.y}`);
+          }
         }
 
-        if (groupRef.current && eased > 0.7) {
-          const fade = Math.max(0, 1 - (eased - 0.7) / 0.3);
-          groupRef.current.style.opacity = `${fade}`;
-        }
-
+        // Arrow remains completely visible, connected and solid until fully exiting off-screen
         if (rawProgress < 1) {
           animFrameRef.current = requestAnimationFrame(step);
         }
@@ -145,26 +211,158 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     }
   }, [isFlying, flightData, originalLength, cornerRadius, arrowHeadSize]);
 
-  // Shake recoil translations
-  const shakeX = isShaking ? [0, dc * 9, -dc * 6, dc * 3, 0] : 0;
-  const shakeY = isShaking ? [0, dr * 9, -dr * 6, dr * 3, 0] : 0;
+  // Bounce-back recoil translations when collision occurs:
+  // Smooth backward movement away from obstacle (prevents penetrating or overlapping into other arrows)
+  const shakeX = isShaking ? [0, dc * 2.5, -dc * 9, -dc * 5, -dc * 1.5, 0] : 0;
+  const shakeY = isShaking ? [0, dr * 2.5, -dr * 9, -dr * 5, -dr * 1.5, 0] : 0;
 
   const bodyPath = staticBodyPath;
   const headPath = staticHeadPath;
   const headTip = basePixelPoints[basePixelPoints.length - 1];
 
-  const defaultStrokeColor = isDarkMode ? '#f8fafc' : '#0f172a';
-  const hoverStrokeColor = isDarkMode ? '#ffffff' : '#000000';
-  const hintStrokeColor = isDarkMode ? '#38bdf8' : '#2563eb';
-  const blockedStrokeColor = isDarkMode ? '#f87171' : '#ef4444';
+  // Multi-color gradient per individual arrow (flows from tail to head)
+  const gradientId = useMemo(() => `arrow-grad-${arrow.id}`, [arrow.id]);
+  const gradientPalette = useMemo(() => {
+    return GRADIENT_PALETTES[index % GRADIENT_PALETTES.length];
+  }, [index]);
 
-  const strokeColor = isBlocked
+  const gradientCoords = useMemo(() => {
+    const tail = basePixelPoints[0];
+    const head = basePixelPoints[basePixelPoints.length - 1];
+    let x1 = tail.x;
+    let y1 = tail.y;
+    let x2 = head.x;
+    let y2 = head.y;
+
+    const dist = Math.hypot(x2 - x1, y2 - y1);
+    // If tail and head are close (e.g. U-turn or tight bend), span bounding box in arrow direction
+    if (dist < cellSize * 1.2) {
+      let minX = tail.x, maxX = tail.x, minY = tail.y, maxY = tail.y;
+      basePixelPoints.forEach((p) => {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      });
+      if (arrow.dir === 'UP') {
+        x1 = (minX + maxX) / 2; y1 = maxY; x2 = (minX + maxX) / 2; y2 = minY;
+      } else if (arrow.dir === 'DOWN') {
+        x1 = (minX + maxX) / 2; y1 = minY; x2 = (minX + maxX) / 2; y2 = maxY;
+      } else if (arrow.dir === 'LEFT') {
+        x1 = maxX; y1 = (minY + maxY) / 2; x2 = minX; y2 = (minY + maxY) / 2;
+      } else {
+        x1 = minX; y1 = (minY + maxY) / 2; x2 = maxX; y2 = (minY + maxY) / 2;
+      }
+    }
+    return { x1, y1, x2, y2 };
+  }, [basePixelPoints, cellSize, arrow.dir]);
+
+  // Multi-color palette assignment per arrow (stable across level progression)
+  const multiColorStroke = MULTICOLOR_PALETTE[stablePaletteIdx];
+  const gradientStroke = `url(#${gradientId})`;
+
+  const defaultStrokeColor = arrowTheme === 'gradient'
+    ? gradientStroke
+    : arrowTheme === 'multicolor'
+    ? multiColorStroke
+    : (isDarkMode ? '#f8fafc' : '#0f172a');
+
+  const hoverStrokeColor = arrowTheme === 'gradient'
+    ? gradientStroke
+    : arrowTheme === 'multicolor'
+    ? multiColorStroke
+    : (isDarkMode ? '#ffffff' : '#000000');
+
+  const hintStrokeColor = isDarkMode ? '#38bdf8' : '#2563eb';
+  const blockedStrokeColor = isDarkMode ? '#ef4444' : '#dc2626'; // Vibrant tactile Red on collision
+  
+  // In Palette mode, arrow keeps its solid palette stroke during flight
+  const flyingStrokeColor = arrowTheme === 'multicolor'
+    ? multiColorStroke
+    : `url(#${flightGradientId})`;
+
+  // Tip stop color for gradient theme ensures arrowhead is 100% solid, crisp, and matches the tip stop
+  const gradientTipColor = gradientPalette[gradientPalette.length - 1];
+
+  const defaultHeadColor = arrowTheme === 'gradient'
+    ? gradientTipColor
+    : arrowTheme === 'multicolor'
+    ? multiColorStroke
+    : (isDarkMode ? '#f8fafc' : '#0f172a');
+
+  const hoverHeadColor = arrowTheme === 'gradient'
+    ? gradientTipColor
+    : arrowTheme === 'multicolor'
+    ? multiColorStroke
+    : (isDarkMode ? '#ffffff' : '#000000');
+
+  const flightHeadColor = arrowTheme === 'gradient'
+    ? gradientTipColor
+    : arrowTheme === 'multicolor'
+    ? multiColorStroke
+    : flightPalette.dark;
+
+  // When tapped:
+  // - If successful and escaping: dynamic flight gradient (tail light, head dark)!
+  // - If collision / wrong move: bounce back and flash red!
+  const strokeColor = isFlying
+    ? flyingStrokeColor
+    : isBlocked
     ? blockedStrokeColor
     : isHinted
     ? hintStrokeColor
     : isHovered
     ? hoverStrokeColor
     : defaultStrokeColor;
+
+  const headColor = isFlying
+    ? flightHeadColor
+    : isBlocked
+    ? blockedStrokeColor
+    : isHinted
+    ? hintStrokeColor
+    : isHovered
+    ? hoverHeadColor
+    : defaultHeadColor;
+
+  // Press-and-hold: Trajectory guide appears when tapped & held down!
+  const holdTimeoutRef = useRef<number | null>(null);
+  const pointerStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearHold = useCallback(() => {
+    if (holdTimeoutRef.current !== null) {
+      clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+    pointerStartPosRef.current = null;
+    onHoverEnd?.();
+  }, [onHoverEnd]);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimeoutRef.current !== null) {
+        clearTimeout(holdTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (isFlying) return;
+    pointerStartPosRef.current = { x: e.clientX, y: e.clientY };
+    // Reveal transparent trajectory guide after 120ms of continuous hold
+    holdTimeoutRef.current = window.setTimeout(() => {
+      onHoverStart?.(arrow);
+    }, 120);
+  }, [isFlying, arrow, onHoverStart]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (pointerStartPosRef.current) {
+      const dist = Math.hypot(e.clientX - pointerStartPosRef.current.x, e.clientY - pointerStartPosRef.current.y);
+      if (dist > 14) {
+        clearHold();
+      }
+    }
+  }, [clearHold]);
 
   const arrangeDelay = Math.min(0.45, (index || 0) * 0.028);
 
@@ -174,13 +372,17 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     <motion.g
       ref={groupRef}
       id={`maze-arrow-${arrow.id}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={clearHold}
+      onPointerCancel={clearHold}
+      onPointerLeave={clearHold}
       onClick={(e) => {
         if (isFlying) return;
         e.stopPropagation();
+        clearHold();
         onClick(arrow);
       }}
-      onMouseEnter={() => !isFlying && onHoverStart?.(arrow)}
-      onMouseLeave={() => onHoverEnd?.()}
       initial={isDense ? false : {
         opacity: 0,
         scale: 0.35,
@@ -188,29 +390,88 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
       }}
       animate={{
         opacity: 1,
-        scale: 1,
+        scale: isFlying ? [1, 1.12, 1.04] : (isShaking ? [1, 0.94, 1.05, 1] : 1),
         x: isFlying ? 0 : (isShaking ? shakeX : 0),
         y: isFlying ? 0 : (isShaking ? shakeY : 0),
       }}
       transition={{
         opacity: { duration: 0.2, delay: isDense ? 0 : arrangeDelay },
-        scale: { type: 'spring', stiffness: 450, damping: 22, delay: isDense ? 0 : arrangeDelay },
+        scale: isFlying
+          ? { duration: 0.25, ease: 'easeOut' }
+          : isShaking
+          ? { duration: 0.42, ease: 'easeInOut' }
+          : { type: 'spring', stiffness: 450, damping: 22, delay: isDense ? 0 : arrangeDelay },
         y: isShaking
-          ? { duration: 0.28, ease: 'easeInOut' }
+          ? { duration: 0.36, ease: [0.25, 1, 0.5, 1] }
           : { type: 'spring', stiffness: 450, damping: 22, delay: isDense ? 0 : arrangeDelay },
         x: isShaking
-          ? { duration: 0.28, ease: 'easeInOut' }
+          ? { duration: 0.36, ease: [0.25, 1, 0.5, 1] }
           : { duration: 0.1 },
       }}
       style={{
         transformOrigin: `${centerPoint.x}px ${centerPoint.y}px`,
-        filter: isHovered
+        // Clean borderless exit: zero drop-shadow during flight!
+        filter: isFlying
+          ? 'none'
+          : isBlocked
+          ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.65))'
+          : isHovered
           ? (isDarkMode ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.45))' : 'drop-shadow(0 2px 4px rgba(15, 23, 42, 0.25))')
           : (isDarkMode ? 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7))' : 'none'),
         willChange: isFlying || isShaking ? 'transform, opacity' : 'auto',
       }}
       className={isFlying ? "pointer-events-none select-none" : "cursor-pointer select-none"}
     >
+      {/* SVG linear gradient definitions */}
+      <defs>
+        {/* Dynamic Flight Gradient: Tail is LIGHT, Head is DARK, or Rainbow if gradient theme */}
+        <linearGradient
+          ref={flightGradRef}
+          id={flightGradientId}
+          x1={basePixelPoints[0]?.x ?? 0}
+          y1={basePixelPoints[0]?.y ?? 0}
+          x2={headTip.x}
+          y2={headTip.y}
+          gradientUnits="userSpaceOnUse"
+        >
+          {arrowTheme === 'gradient' ? (
+            gradientPalette.map((col, sIdx) => (
+              <stop
+                key={sIdx}
+                offset={`${(sIdx / (gradientPalette.length - 1)) * 100}%`}
+                stopColor={col}
+              />
+            ))
+          ) : (
+            <>
+              <stop offset="0%" stopColor={flightPalette.light} />
+              <stop offset="45%" stopColor={flightPalette.mid} />
+              <stop offset="100%" stopColor={flightPalette.dark} />
+            </>
+          )}
+        </linearGradient>
+
+        {/* SVG linear gradient definition when in multi-color gradient theme */}
+        {arrowTheme === 'gradient' && (
+          <linearGradient
+            id={gradientId}
+            x1={gradientCoords.x1}
+            y1={gradientCoords.y1}
+            x2={gradientCoords.x2}
+            y2={gradientCoords.y2}
+            gradientUnits="userSpaceOnUse"
+          >
+            {gradientPalette.map((col, sIdx) => (
+              <stop
+                key={sIdx}
+                offset={`${(sIdx / (gradientPalette.length - 1)) * 100}%`}
+                stopColor={col}
+              />
+            ))}
+          </linearGradient>
+        )}
+      </defs>
+
       {/* Generous invisible stroke area for easy tap & click interaction */}
       <path
         ref={hitPathRef}
@@ -288,8 +549,8 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         <path
           ref={headPathRef}
           d={headPath}
-          fill={strokeColor}
-          stroke={strokeColor}
+          fill={headColor}
+          stroke={headColor}
           strokeWidth={1}
           strokeLinejoin="round"
         />
@@ -297,8 +558,8 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         <motion.path
           ref={headPathRef}
           d={headPath}
-          fill={strokeColor}
-          stroke={strokeColor}
+          fill={headColor}
+          stroke={headColor}
           strokeWidth={1}
           strokeLinejoin="round"
           initial={{ scale: 0, opacity: 0 }}

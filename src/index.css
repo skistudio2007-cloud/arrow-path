@@ -16,6 +16,12 @@
   font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Native Mobile App Experience: Zero browser artifacts, no text selection, no pull-to-refresh, no tap highlights */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -23,6 +29,11 @@ html, body {
   height: 100%;
   min-height: 100dvh;
   background-color: #edf1fa;
+  overflow: hidden;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  overscroll-behavior: none !important;
+  touch-action: manipulation;
 }
 
 /* Dedicated smooth scroll container for scrollable screens (Collection, Settings) */
@@ -106,5 +117,3 @@ html.dark, body.dark {
     transform: scale(0);
   }
 }
-
-

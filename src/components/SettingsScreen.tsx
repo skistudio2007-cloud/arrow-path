@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ArrowLeft,
   Globe,
   Waves,
   Volume2,
@@ -34,6 +35,7 @@ interface SettingsScreenProps {
   onOpenHowToPlay: () => void;
   onTestRewardedAd?: () => void;
   onTestInterstitialAd?: () => void;
+  onBackToGame?: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -45,6 +47,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onOpenHowToPlay,
   onTestRewardedAd,
   onTestInterstitialAd,
+  onBackToGame,
 }) => {
   const [accountConnected, setAccountConnected] = useState<boolean>(() => {
     try {
@@ -122,7 +125,26 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
       )}
 
-      <div className="space-y-3.5 mt-2">
+      {/* Settings Top Bar */}
+      <div className="flex items-center justify-between py-1 mb-1">
+        <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[#1e2746] dark:text-white flex items-center gap-2">
+          <span>⚙️</span>
+          <span>{t(currentLanguage, 'settings')}</span>
+        </h1>
+        {onBackToGame && (
+          <button
+            type="button"
+            id="btn-settings-back-to-game"
+            onClick={onBackToGame}
+            className="px-3 py-1.5 rounded-full bg-[#5266fc] text-white text-xs font-bold shadow-xs active:scale-95 cursor-pointer flex items-center gap-1.5 transition-all"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Game</span>
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-3.5 mt-1">
         {/* Card 1: Main Controls (Language, Vibrations, Sounds, Dark mode) */}
         <div className="bg-[#f8faff] rounded-2xl border border-[#e5ebf7] shadow-2xs divide-y divide-[#edf1f9] overflow-hidden">
           {/* Language */}
@@ -252,6 +274,73 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 showToast(next ? t(currentLanguage, 'trajectoryEnabled') : t(currentLanguage, 'trajectoryDisabled'));
               }}
             />
+          </div>
+
+          {/* Arrow Color Theme */}
+          <div className="p-3.5 flex flex-col gap-2.5">
+            <div className="flex items-center gap-3 text-[#2c3858]">
+              <span className="text-lg">🎨</span>
+              <div className="flex flex-col">
+                <span className="font-bold text-sm">Arrow Theme</span>
+                <span className="text-[11px] text-[#8694b2] font-medium">
+                  {settings.arrowTheme === 'gradient'
+                    ? 'Multi-Color: Each arrow has rainbow gradient 🌈'
+                    : settings.arrowTheme === 'multicolor'
+                    ? 'Palette: Distinct solid color per arrow'
+                    : 'Classic: Clean minimalist arrows'}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  updateSetting('arrowTheme', 'classic');
+                  showToast('Classic Mono Theme Active');
+                }}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  settings.arrowTheme === 'classic'
+                    ? 'bg-[#5266fc] text-white border-[#5266fc] shadow-xs'
+                    : 'bg-white text-[#425070] border-[#d8e1f0] hover:bg-[#f1f5fc]'
+                }`}
+              >
+                <span className="w-3 h-3 rounded-full bg-slate-800 shrink-0" />
+                <span>Classic</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateSetting('arrowTheme', 'multicolor');
+                  showToast('Palette Theme Active');
+                }}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  settings.arrowTheme === 'multicolor'
+                    ? 'bg-[#5266fc] text-white border-[#5266fc] shadow-xs'
+                    : 'bg-white text-[#425070] border-[#d8e1f0] hover:bg-[#f1f5fc]'
+                }`}
+              >
+                <div className="flex -space-x-1 shrink-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                </div>
+                <span>Palette</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateSetting('arrowTheme', 'gradient');
+                  showToast('Multi-Color Rainbow Active! 🌈');
+                }}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  settings.arrowTheme === 'gradient'
+                    ? 'bg-[#5266fc] text-white border-[#5266fc] shadow-xs'
+                    : 'bg-white text-[#425070] border-[#d8e1f0] hover:bg-[#f1f5fc]'
+                }`}
+              >
+                <span className="w-3 h-3 rounded-full bg-gradient-to-tr from-pink-500 via-amber-400 to-indigo-500 shrink-0" />
+                <span>Multi-Color 🌈</span>
+              </button>
+            </div>
           </div>
 
           {/* Board Theme */}

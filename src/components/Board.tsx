@@ -1,15 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { motion } from 'motion/react';
-import { GridCoord, MazeArrow, ThemeConfig } from '../types';
+import { GridCoord, MazeArrow, ThemeConfig, ArrowTheme } from '../types';
 import { MazeArrowRenderer } from './MazeArrowRenderer';
 import { TrajectoryLine } from './TrajectoryLine';
-
-export interface SinkingDotEvent {
-  id: string;
-  points: GridCoord[];
-}
-
-
 
 interface BoardProps {
   levelId?: number;
@@ -21,11 +13,11 @@ interface BoardProps {
   shakingArrowId: string | null;
   blockedTargetId: string | null;
   hintArrowId: string | null;
-  sinkingEvents?: SinkingDotEvent[];
   showTrajectory?: boolean;
   onArrowClick: (arrow: MazeArrow) => void;
   isVictory?: boolean;
   isDarkMode?: boolean;
+  arrowTheme?: ArrowTheme;
 }
 
 const MIN_ZOOM = 0.9; // In-zoom / Out-zoom minimum: 90%
@@ -70,7 +62,8 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
           style={
             isVictory
               ? {
-                  transformOrigin: `${cx}px ${cy}px`,
+                  transformBox: 'fill-box',
+                  transformOrigin: 'center',
                   animation: `victoryDotDisappear 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) ${(normDist * 0.35).toFixed(3)}s forwards`,
                 }
               : undefined
@@ -93,11 +86,11 @@ export const Board: React.FC<BoardProps> = ({
   shakingArrowId,
   blockedTargetId,
   hintArrowId,
-  sinkingEvents = [],
   showTrajectory = true,
   onArrowClick,
   isVictory = false,
   isDarkMode = false,
+  arrowTheme = 'classic',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -116,6 +109,7 @@ export const Board: React.FC<BoardProps> = ({
   const handleHoverEnd = useCallback(() => {
     setHoveredArrow(null);
   }, []);
+
 
   const zoomScaleRef = useRef<number>(1);
   const panRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -475,42 +469,8 @@ export const Board: React.FC<BoardProps> = ({
     };
   }, []);
 
-  const gridDotColor = isDarkMode ? '#475569' : (theme?.gridDotColor || '#94a3b8');
-
-  // Sinking dots overlay: ONLY renders and animates the 3-8 dots that are actually sinking!
-  const sinkingDotsOverlay = useMemo(() => {
-    if (!sinkingEvents || sinkingEvents.length === 0) return null;
-    const dotRadius = Math.max(1.8, Math.min(3, baseCellSize * 0.06));
-
-    return sinkingEvents.flatMap((event) =>
-      event.points.map((pt, idx) => {
-        const cx = pt.c * baseCellSize + baseCellSize / 2;
-        const cy = pt.r * baseCellSize + baseCellSize / 2;
-        return (
-          <motion.circle
-            key={`${event.id}-${pt.r}-${pt.c}`}
-            cx={cx}
-            cy={cy}
-            r={dotRadius}
-            fill={gridDotColor}
-            initial={{ scale: 1, opacity: 0.3 }}
-            animate={{
-              scale: [1, 0.15, 1.35, 1],
-              opacity: [0.3, 0.85, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 0.44,
-              delay: idx * 0.055,
-              ease: [0.34, 1.56, 0.64, 1],
-            }}
-            style={{
-              transformOrigin: `${cx}px ${cy}px`,
-            }}
-          />
-        );
-      })
-    );
-  }, [sinkingEvents, baseCellSize, gridDotColor]);
+  // Clean neutral monochrome grid dot color: completely free of theme color tints
+  const gridDotColor = isDarkMode ? '#475569' : '#94a3b8';
 
   // Memoize active non-flying arrows for trajectory calculations
   const nonFlyingArrows = useMemo(
@@ -560,7 +520,7 @@ export const Board: React.FC<BoardProps> = ({
             className="w-full h-full overflow-visible"
             style={{ overflow: 'visible' }}
           >
-            {/* Clean minimal grid dots with isolated animated overlay */}
+            {/* Subtle animated background grid dots */}
             <g className="pointer-events-none">
               <StaticGridDots
                 rows={rows}
@@ -570,7 +530,6 @@ export const Board: React.FC<BoardProps> = ({
                 isVictory={isVictory}
                 isDarkMode={isDarkMode}
               />
-              {!isVictory && sinkingDotsOverlay}
             </g>
 
             {/* Trajectory Guide for hovered arrow */}
@@ -587,7 +546,7 @@ export const Board: React.FC<BoardProps> = ({
             {/* Render all maze arrows */}
             {arrows.map((arrow, index) => (
               <MazeArrowRenderer
-                key={`${levelId ?? 0}-${arrow.id}`}
+                key={`${levelId ?? 0}-${arrow.id}-${arrowTheme}`}
                 arrow={arrow}
                 index={index}
                 cellSize={baseCellSize}
@@ -600,6 +559,7 @@ export const Board: React.FC<BoardProps> = ({
                 onHoverStart={handleHoverStart}
                 onHoverEnd={handleHoverEnd}
                 isDarkMode={isDarkMode}
+                arrowTheme={arrowTheme}
               />
             ))}
           </svg>

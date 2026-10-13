@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { MazeArrow } from '../types';
 import { checkArrowEscape, DIR_VECTORS } from '../utils/levels';
 
@@ -42,26 +43,29 @@ const TrajectoryLineComponent: React.FC<TrajectoryLineProps> = ({
     endY = blockerCoord.r * cellSize + cellSize / 2;
   }
 
+  // Neutral refined translucent guide (no blue colors, no unwanted endpoint dots)
+  const guideColor = canEscape ? '#64748b' : '#ef4444';
+
   return (
-    <g className="pointer-events-none">
+    <motion.g
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.16, ease: 'easeOut' }}
+      className="pointer-events-none"
+    >
+      {/* Translucent refined dashed trajectory guide */}
       <line
         x1={startX}
         y1={startY}
         x2={endX}
         y2={endY}
-        stroke={canEscape ? '#3b82f6' : '#ef4444'}
-        strokeWidth="2.5"
-        strokeDasharray="4 4"
-        strokeOpacity={canEscape ? 0.6 : 0.75}
+        stroke={guideColor}
+        strokeWidth="1.8"
+        strokeDasharray="3 4"
+        strokeOpacity={canEscape ? 0.38 : 0.44}
       />
-      <circle
-        cx={endX}
-        cy={endY}
-        r={canEscape ? 3.5 : 5}
-        fill={canEscape ? '#3b82f6' : '#ef4444'}
-        opacity={0.8}
-      />
-    </g>
+    </motion.g>
   );
 };
 

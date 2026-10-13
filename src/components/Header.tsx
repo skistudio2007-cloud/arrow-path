@@ -5,6 +5,7 @@ import {
   Volume2,
   VolumeX,
   Lightbulb,
+  Settings,
 } from 'lucide-react';
 import { LevelData } from '../types';
 import { isHardBossLevel } from '../utils/levels';
@@ -29,6 +30,7 @@ interface HeaderProps {
   onWatchAdForHint?: () => void;
   onOpenSettings?: () => void;
   isDarkMode?: boolean;
+  hasRemovedAds?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,7 +46,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSound,
   onHint,
   onWatchAdForHint,
+  onOpenSettings,
   isDarkMode = false,
+  hasRemovedAds = false,
 }) => {
   const totalArrows = currentLevel.arrows.length;
   const remaining = remainingArrowsCount ?? totalArrows;
@@ -133,6 +137,10 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="absolute -top-1 -right-1 bg-amber-500 text-white font-bold text-[9px] min-w-[15px] h-[15px] px-0.5 rounded-full flex items-center justify-center shadow-xs">
                 {hintsCount}
               </span>
+            ) : hasRemovedAds ? (
+              <span className="absolute -top-1 -right-1 bg-emerald-500 text-white font-black text-[9px] min-w-[15px] h-[15px] px-0.5 rounded-full flex items-center justify-center shadow-xs">
+                +1
+              </span>
             ) : (
               <span className="absolute -top-1.5 -right-2 bg-gradient-to-r from-red-500 to-amber-500 text-white font-black text-[8px] px-1 py-0.2 rounded-full flex items-center gap-0.5 shadow-xs animate-pulse">
                 <span>📺</span>
@@ -155,6 +163,19 @@ export const Header: React.FC<HeaderProps> = ({
               <VolumeX className={`w-4 h-4 stroke-[2] ${isDarkMode ? 'text-neutral-500' : 'text-neutral-400'}`} />
             )}
           </button>
+
+          {onOpenSettings && (
+            <button
+              type="button"
+              id="btn-settings-header"
+              onClick={onOpenSettings}
+              aria-label="Settings"
+              title="Settings"
+              className={`w-9 h-9 rounded-full ${isDarkMode ? 'bg-slate-800/90 hover:bg-slate-700/90 border-slate-700/60 text-neutral-200' : 'bg-neutral-100/90 hover:bg-neutral-200/90 border-neutral-200/60 text-neutral-700'} active:scale-95 flex items-center justify-center transition-all cursor-pointer border`}
+            >
+              <Settings className="w-4 h-4 stroke-[2]" />
+            </button>
+          )}
         </div>
       </div>
     </header>

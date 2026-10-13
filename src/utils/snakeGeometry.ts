@@ -127,13 +127,77 @@ export function slicePolyline(
 }
 
 /**
- * Builds extended exit path for snake slithering
+ * Subdivides corners of a polyline into smooth quadratic arc points.
+ * Guarantees smooth tangent transitions and exact curve tracking for arrowheads.
+ */
+export function buildSmoothPixelPoints(rawPts: PixelPoint[], cornerRadius = 14): PixelPoint[] {
+  if (rawPts.length <= 2) return rawPts;
+
+  const result: PixelPoint[] = [rawPts[0]];
+
+  for (let i = 1; i < rawPts.length - 1; i++) {
+    const prev = rawPts[i - 1];
+    const curr = rawPts[i];
+    const next = rawPts[i + 1];
+
+    const v1x = prev.x - curr.x;
+    const v1y = prev.y - curr.y;
+    const len1 = Math.hypot(v1x, v1y);
+
+    const v2x = next.x - curr.x;
+    const v2y = next.y - curr.y;
+    const len2 = Math.hypot(v2x, v2y);
+
+    if (len1 < 1 || len2 < 1) {
+      result.push(curr);
+      continue;
+    }
+
+    const u1x = v1x / len1;
+    const u1y = v1y / len1;
+    const u2x = v2x / len2;
+    const u2y = v2y / len2;
+
+    const r = Math.min(cornerRadius, len1 * 0.45, len2 * 0.45);
+
+    const startX = curr.x + u1x * r;
+    const startY = curr.y + u1y * r;
+    const endX = curr.x + u2x * r;
+    const endY = curr.y + u2y * r;
+
+    // Subdivide quadratic bezier arc into 5 smooth segments
+    const steps = 5;
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const oneMinusT = 1 - t;
+      const bx = oneMinusT * oneMinusT * startX + 2 * oneMinusT * t * curr.x + t * t * endX;
+      const by = oneMinusT * oneMinusT * startY + 2 * oneMinusT * t * curr.y + t * t * endY;
+
+      const last = result[result.length - 1];
+      if (Math.hypot(bx - last.x, by - last.y) >= 0.5) {
+        result.push({ x: bx, y: by });
+      }
+    }
+  }
+
+  const lastRaw = rawPts[rawPts.length - 1];
+  const lastRes = result[result.length - 1];
+  if (Math.hypot(lastRaw.x - lastRes.x, lastRaw.y - lastRes.y) >= 0.5) {
+    result.push(lastRaw);
+  }
+
+  return result;
+}
+
+/**
+ * Builds extended exit path for snake slithering with smooth corner transitions
  */
 export function buildExtendedSnakePath(
   gridPoints: GridCoord[],
   dir: Direction,
   cellSize: number,
-  exitDist = 1200
+  exitDist = 450,
+  cornerRadius = 14
 ): PixelPoint[] {
   const pixelPts = gridToPixelPoints(gridPoints, cellSize);
   if (pixelPts.length === 0) return [];
@@ -146,7 +210,21 @@ export function buildExtendedSnakePath(
     y: head.y + dr * exitDist,
   };
 
-  return [...pixelPts, extendedHead];
+  const rawFull = [...pixelPts, extendedHead];
+  return buildSmoothPixelPoints(rawFull, cornerRadius);
+}
+
+/**
+ * Builds fast, clean SVG path string connecting an already-smoothed polyline
+ */
+export function buildPolylinePixelPath(pts: PixelPoint[]): string {
+  if (pts.length === 0) return '';
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += ` L ${pts[i].x} ${pts[i].y}`;
+  }
+  return d;
 }
 
 /**

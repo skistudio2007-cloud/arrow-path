@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { LayoutGrid, RotateCcw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import confetti from 'canvas-confetti';
-import { Board, SinkingDotEvent } from './components/Board';
+import { Board } from './components/Board';
 import { Header } from './components/Header';
 import { HomeScreen } from './components/HomeScreen';
 import { CollectionScreen } from './components/CollectionScreen';
@@ -48,6 +48,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   showTrajectory: true,
   darkMode: false,
   themeOverride: null,
+  arrowTheme: 'classic',
 };
 
 export default function App() {
@@ -183,8 +184,6 @@ export default function App() {
   const [achievedMilestones, setAchievedMilestones] = useState<Set<number>>(new Set());
   const milestoneTimeoutRef = useRef<number | null>(null);
 
-  // Tactile Sinking Grid Dots when arrow leaves
-  const [sinkingEvents, setSinkingEvents] = useState<SinkingDotEvent[]>([]);
 
   // Hint Banking & Rewarded Video Ads
   const [hintsCount, setHintsCount] = useState<number>(() => {
@@ -198,6 +197,26 @@ export default function App() {
   const [activeAdReward, setActiveAdReward] = useState<RewardType | null>(null);
   const [activeInterstitialLevel, setActiveInterstitialLevel] = useState<number | null>(null);
   const [rewardToast, setRewardToast] = useState<string | null>(null);
+
+  // Remove Ads reactive state synced with localStorage
+  const [isAdsRemoved, setIsAdsRemoved] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('arrowgo_remove_ads') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const checkRemoveAds = () => {
+      try {
+        setIsAdsRemoved(localStorage.getItem('arrowgo_remove_ads') === 'true');
+      } catch {}
+    };
+    checkRemoveAds();
+    window.addEventListener('storage', checkRemoveAds);
+    return () => window.removeEventListener('storage', checkRemoveAds);
+  }, [activeTab]);
 
   // Sync sound manager enabled state with settings
   const handleUpdateSettings = useCallback((newSettings: GameSettings) => {
@@ -433,7 +452,7 @@ export default function App() {
       setTimeout(() => {
         setShakingArrowId(null);
         setBlockedTargetId(null);
-      }, 350);
+      }, 380);
       return;
     }
 
@@ -474,18 +493,6 @@ export default function App() {
     // Trigger flight animation
     setFlyingArrowIds((prev) => new Set(prev).add(arrow.id));
 
-    // Arrow jaise hi niklega, uske neeche ke dots sink hokar phir same size me aa jayenge!
-    const sinkEventId = `sink-${arrow.id}-${Date.now()}`;
-    const sinkEvent: SinkingDotEvent = {
-      id: sinkEventId,
-      points: [...arrow.points],
-    };
-    setSinkingEvents((prev) => [...prev, sinkEvent]);
-    const cleanupMs = arrow.points.length * 60 + 550;
-    setTimeout(() => {
-      setSinkingEvents((prev) => prev.filter((e) => e.id !== sinkEventId));
-    }, cleanupMs);
-
     setTimeout(() => {
       // Synchronously delete arrow from activeArrowIdsRef
       activeArrowIdsRef.current.delete(arrow.id);
@@ -518,7 +525,7 @@ export default function App() {
       if (isLevelFinished) {
         handleLevelComplete(movesRef.current);
       }
-    }, 650);
+    }, 400);
   };
 
   const handleLevelComplete = (finalMoves: number) => {
@@ -716,6 +723,12 @@ export default function App() {
 
   const handleHint = () => {
     if (hintsCount <= 0) {
+      try {
+        if (localStorage.getItem('arrowgo_remove_ads') === 'true') {
+          handleRewardGranted('hint');
+          return;
+        }
+      } catch {}
       setActiveAdReward('hint');
       return;
     }
@@ -874,6 +887,7 @@ export default function App() {
                 onUpdateSettings={handleUpdateSettings}
                 onResetProgress={handleResetProgress}
                 onOpenHowToPlay={() => setIsHowToPlayOpen(true)}
+                onBackToGame={() => setCurrentScreen('game')}
                 onTestRewardedAd={() => handleWatchAdForHint()}
                 onTestInterstitialAd={() => {
                   showInterstitialAd(
@@ -922,6 +936,7 @@ export default function App() {
             hintsCount={hintsCount}
             lang={currentLanguage}
             isDarkMode={settings.darkMode}
+            hasRemovedAds={isAdsRemoved}
             onGoHome={() => setCurrentScreen('tabs')}
             onPreviousLevel={handlePreviousLevel}
             onRestartLevel={handleRestart}
@@ -998,11 +1013,11 @@ export default function App() {
                 shakingArrowId={shakingArrowId}
                 blockedTargetId={blockedTargetId}
                 hintArrowId={hintArrowId}
-                sinkingEvents={sinkingEvents}
                 showTrajectory={settings.showTrajectory}
                 onArrowClick={handleArrowClick}
                 isVictory={isVictory || showWinningAnimation}
                 isDarkMode={settings.darkMode}
+                arrowTheme={settings.arrowTheme}
               />
             )}
 
@@ -1174,6 +1189,7 @@ export default function App() {
             lang={currentLanguage}
             onRestart={handleRestart}
             onWatchAdForLife={handleWatchAdForLife}
+            hasRemovedAds={isAdsRemoved}
           />
 
           {/* Rewarded Video Ad Modal */}

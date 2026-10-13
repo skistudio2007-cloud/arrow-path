@@ -17,6 +17,8 @@ export interface MazeArrow {
   color?: string;
 }
 
+export type ArrowTheme = 'classic' | 'multicolor' | 'gradient';
+
 export type LevelDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert' | 'Master' | 'Grandmaster' | 'Legend';
 
 export interface ThemeConfig {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Volume2, VolumeX, Smartphone, Eye, Sparkles, Trash2, Check, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ArrowTheme } from '../types';
 import { THEMES } from '../utils/levels';
 
 export interface GameSettings {
@@ -9,6 +10,7 @@ export interface GameSettings {
   showTrajectory: boolean;
   darkMode: boolean;
   themeOverride: string | null; // null = Auto-rotate per level
+  arrowTheme: ArrowTheme; // 'classic' (minimal black/white), 'multicolor' (palette per arrow), 'gradient' (multi-color rainbow on each arrow)
 }
 
 interface SettingsModalProps {
@@ -173,6 +175,56 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     layout
                     className="w-5.5 h-5.5 rounded-full bg-white shadow-xs"
                   />
+                </button>
+              </div>
+            </div>
+
+            {/* Arrow Color Theme Selector (Classic vs Palette vs Multi-Color Gradient) */}
+            <div className="pt-3 border-t border-neutral-100">
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="text-sm">🎨</span>
+                <span className="text-xs sm:text-sm font-bold text-black">Arrow Color Theme</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => updateField('arrowTheme', 'classic')}
+                  className={`p-2.5 rounded-xl text-xs font-semibold border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    settings.arrowTheme === 'classic'
+                      ? 'bg-black text-white border-black shadow-xs'
+                      : 'bg-neutral-50 text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                  }`}
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-slate-900 border border-white shrink-0" />
+                  <span>Classic Mono</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('arrowTheme', 'multicolor')}
+                  className={`p-2.5 rounded-xl text-xs font-semibold border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    settings.arrowTheme === 'multicolor'
+                      ? 'bg-black text-white border-black shadow-xs'
+                      : 'bg-neutral-50 text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                  }`}
+                >
+                  <div className="flex -space-x-1 shrink-0">
+                    <span className="w-3 h-3 rounded-full bg-blue-500 border border-white" />
+                    <span className="w-3 h-3 rounded-full bg-emerald-500 border border-white" />
+                    <span className="w-3 h-3 rounded-full bg-amber-500 border border-white" />
+                  </div>
+                  <span>Palette</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('arrowTheme', 'gradient')}
+                  className={`p-2.5 rounded-xl text-xs font-semibold border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    settings.arrowTheme === 'gradient'
+                      ? 'bg-black text-white border-black shadow-xs'
+                      : 'bg-neutral-50 text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                  }`}
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-pink-500 via-amber-400 to-indigo-500 shrink-0" />
+                  <span>Multi-Color 🌈</span>
                 </button>
               </div>
             </div>
