@@ -6,6 +6,9 @@ coverage/
 *.log
 *.apk
 *.aab
+!ArrowGo.apk
+!arrow-go.apk
+!arrow-go.aab
 .env*
 !.env.example
 
