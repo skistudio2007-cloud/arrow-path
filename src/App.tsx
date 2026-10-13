@@ -151,6 +151,11 @@ export default function App() {
   const movesRef = useRef<number>(0);
   const [history, setHistory] = useState<{ arrows: MazeArrow[]; lives: number }[]>([]);
   const [flyingArrowIds, setFlyingArrowIds] = useState<Set<string>>(new Set());
+  const flyingArrowIdsRef = useRef<Set<string>>(new Set());
+  const currentLevelRef = useRef(currentLevel);
+  useEffect(() => {
+    currentLevelRef.current = currentLevel;
+  }, [currentLevel]);
   const [shakingArrowId, setShakingArrowId] = useState<string | null>(null);
   const [blockedTargetId, setBlockedTargetId] = useState<string | null>(null);
   const [hintArrowId, setHintArrowId] = useState<string | null>(null);
@@ -365,6 +370,7 @@ export default function App() {
     movesRef.current = 0;
     setHistory([]);
     setFlyingArrowIds(new Set());
+    flyingArrowIdsRef.current.clear();
     setShakingArrowId(null);
     setBlockedTargetId(null);
     setHintArrowId(null);
@@ -418,7 +424,7 @@ export default function App() {
 
   // Handle arrow click/tap
   const handleArrowClick = (arrow: MazeArrow) => {
-    if (isVictory || isGameOver || flyingArrowIds.has(arrow.id)) return;
+    if (isVictory || isGameOver || flyingArrowIds.has(arrow.id) || flyingArrowIdsRef.current.has(arrow.id)) return;
 
     // Filter out arrows that are currently in flight so they don't block subsequent moves
     const nonFlyingArrows = activeArrows.filter((a) => !flyingArrowIds.has(a.id));
@@ -491,6 +497,7 @@ export default function App() {
     setHintArrowId(null);
 
     // Trigger flight animation
+    flyingArrowIdsRef.current.add(arrow.id);
     setFlyingArrowIds((prev) => new Set(prev).add(arrow.id));
 
     // Fallback safety timeout ensuring arrow cleanup even if the tab is throttled or in background
@@ -639,7 +646,8 @@ export default function App() {
   };
 
   // Safe arrow cleanup callback triggered ONLY when the arrow's entire body & tail have crossed 100% off-screen
-  const handleArrowFlightComplete = (arrowId: string) => {
+  const handleArrowFlightComplete = useCallback((arrowId: string) => {
+    flyingArrowIdsRef.current.delete(arrowId);
     if (!activeArrowIdsRef.current.has(arrowId)) return;
     activeArrowIdsRef.current.delete(arrowId);
     const isLevelFinished = activeArrowIdsRef.current.size === 0;
@@ -648,7 +656,7 @@ export default function App() {
     setActiveArrows((prev) => {
       const next = prev.filter((a) => a.id !== arrowId);
       // Check 25%, 50%, 75% progress milestones with emojis
-      const total = currentLevel.arrows.length;
+      const total = currentLevelRef.current.arrows.length;
       const cleared = total - next.length;
       if (total >= 4 && next.length > 0) {
         if (cleared >= Math.ceil(total * 0.75)) {
@@ -671,11 +679,12 @@ export default function App() {
     if (isLevelFinished) {
       handleLevelComplete(movesRef.current);
     }
-  };
+  }, [triggerMilestone]);
 
   const handleUndo = () => {
-    if (history.length === 0 || isVictory || isGameOver || flyingArrowIds.size > 0) return;
+    if (history.length === 0 || isVictory || isGameOver || flyingArrowIds.size > 0 || flyingArrowIdsRef.current.size > 0) return;
     soundManager.playTap();
+    flyingArrowIdsRef.current.clear();
     const previous = history[history.length - 1];
     setActiveArrows(previous.arrows);
     activeArrowIdsRef.current = new Set(previous.arrows.map((a) => a.id));

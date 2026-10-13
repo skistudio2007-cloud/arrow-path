@@ -145,12 +145,46 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     return buildArrowHeadAtPoint(tip, { x: dc, y: dr }, arrowHeadSize);
   }, [basePixelPoints, dc, dr, arrowHeadSize]);
 
-  // Flight data (extended path & cumulative lengths) computed lazily ONLY when this arrow flies.
-  // Calculates dynamic distance ensuring the arrow's entire body & tail travel 100% past the screen viewport!
-  const flightData = useMemo(() => {
-    if (!isFlying) return null;
+  // Maintain stable ref for onFlightComplete so prop changes never restart flight
+  const onFlightCompleteRef = useRef(onFlightComplete);
+  useEffect(() => {
+    onFlightCompleteRef.current = onFlightComplete;
+  });
+
+  const flightActiveRef = useRef(false);
+  const flightDataRef = useRef<{ pts: any[]; lengths: { total: number; cum: number[] }; exitDistance: number } | null>(null);
+
+  const centerPoint = useMemo(() => ({
+    x: basePixelPoints.reduce((acc, p) => acc + p.x, 0) / Math.max(1, basePixelPoints.length),
+    y: basePixelPoints.reduce((acc, p) => acc + p.y, 0) / Math.max(1, basePixelPoints.length),
+  }), [basePixelPoints]);
+
+  // High-performance direct-DOM parametric Snake slithering animation loop
+  // Zero React state updates / zero React re-renders during flight!
+  // Exact uniform physical velocity across all arrows (1600 px/sec) with linear smooth slithering
+  useEffect(() => {
+    if (!isFlying) {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      flightActiveRef.current = false;
+      flightDataRef.current = null;
+      if (groupRef.current) {
+        groupRef.current.style.display = '';
+      }
+      return;
+    }
+
+    // Once flight starts, NEVER restart or interrupt it from mid-flight!
+    if (flightActiveRef.current) {
+      return;
+    }
+
     const tip = basePixelPoints[basePixelPoints.length - 1];
-    if (!tip) return null;
+    if (!tip) return;
+
+    flightActiveRef.current = true;
 
     const bWidth = boardWidth ?? 1000;
     const bHeight = boardHeight ?? 1000;
@@ -191,80 +225,75 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     const exitDist = Math.max(Math.ceil(distToEdge), cellSize * 25, 1000);
     const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist, cornerRadius);
     const lengths = getPolylineLengths(pts);
-    return { pts, lengths, exitDistance: exitDist };
-  }, [isFlying, arrow.points, arrow.dir, cellSize, cornerRadius, basePixelPoints, boardWidth, boardHeight, zoomScale, pan]);
+    const fData = { pts, lengths, exitDistance: exitDist };
+    flightDataRef.current = fData;
 
-  const centerPoint = useMemo(() => ({
-    x: basePixelPoints.reduce((acc, p) => acc + p.x, 0) / Math.max(1, basePixelPoints.length),
-    y: basePixelPoints.reduce((acc, p) => acc + p.y, 0) / Math.max(1, basePixelPoints.length),
-  }), [basePixelPoints]);
+    const startTime = performance.now();
+    // Constant uniform speed: 1600 px/sec (1.6 px/ms) for all arrows!
+    const SPEED_PX_PER_SEC = 1600;
+    const totalTravelDistance = originalLength + fData.exitDistance;
+    const duration = Math.max(250, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000));
 
-  // High-performance direct-DOM parametric Snake slithering animation loop
-  // Zero React state updates / zero React re-renders during flight!
-  // Exact uniform physical velocity across all arrows (1600 px/sec) with linear smooth slithering
-  useEffect(() => {
-    if (isFlying && flightData) {
-      const startTime = performance.now();
-      // Constant uniform speed: 1600 px/sec (1.6 px/ms) for all arrows!
-      const SPEED_PX_PER_SEC = 1600;
-      const totalTravelDistance = originalLength + flightData.exitDistance;
-      const duration = Math.max(250, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000));
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const rawProgress = Math.min(1, elapsed / duration);
+      // Linear constant velocity: every arrow moves at the exact same uniform speed with 0 jerk
+      const eased = rawProgress;
 
-      const step = (now: number) => {
-        const elapsed = now - startTime;
-        const rawProgress = Math.min(1, elapsed / duration);
-        // Linear constant velocity: every arrow moves at the exact same uniform speed with 0 jerk
-        const eased = rawProgress;
+      const travelDist = eased * totalTravelDistance;
+      const startDist = travelDist;
+      const endDist = Math.min(travelDist + originalLength, fData.lengths.total);
 
-        const travelDist = eased * totalTravelDistance;
-        const startDist = travelDist;
-        const endDist = Math.min(travelDist + originalLength, flightData.lengths.total);
+      const sliced = slicePolyline(fData.pts, startDist, endDist, fData.lengths);
+      if (sliced.points.length >= 2) {
+        const newBodyPath = buildPolylinePixelPath(sliced.points);
+        const newHeadTip = sliced.points[sliced.points.length - 1];
+        const newTail = sliced.points[0];
+        const newHeadPath = buildArrowHeadAtPoint(newHeadTip, sliced.headTangent, arrowHeadSize);
 
-        const sliced = slicePolyline(flightData.pts, startDist, endDist, flightData.lengths);
-        if (sliced.points.length >= 2) {
-          const newBodyPath = buildPolylinePixelPath(sliced.points);
-          const newHeadTip = sliced.points[sliced.points.length - 1];
-          const newTail = sliced.points[0];
-          const newHeadPath = buildArrowHeadAtPoint(newHeadTip, sliced.headTangent, arrowHeadSize);
-
-          if (bodyPathRef.current) {
-            bodyPathRef.current.setAttribute('d', newBodyPath);
-          }
-          if (hitPathRef.current) {
-            hitPathRef.current.setAttribute('d', newBodyPath);
-          }
-          if (headPathRef.current) {
-            headPathRef.current.setAttribute('d', newHeadPath);
-            headPathRef.current.style.transformOrigin = `${newHeadTip.x}px ${newHeadTip.y}px`;
-          }
-
-          // Dynamically track flight gradient from tail (light) to head (dark)!
-          if (flightGradRef.current) {
-            flightGradRef.current.setAttribute('x1', `${newTail.x}`);
-            flightGradRef.current.setAttribute('y1', `${newTail.y}`);
-            flightGradRef.current.setAttribute('x2', `${newHeadTip.x}`);
-            flightGradRef.current.setAttribute('y2', `${newHeadTip.y}`);
-          }
+        if (bodyPathRef.current) {
+          bodyPathRef.current.setAttribute('d', newBodyPath);
+        }
+        if (hitPathRef.current) {
+          hitPathRef.current.setAttribute('d', newBodyPath);
+        }
+        if (headPathRef.current) {
+          headPathRef.current.setAttribute('d', newHeadPath);
+          headPathRef.current.style.transformOrigin = `${newHeadTip.x}px ${newHeadTip.y}px`;
         }
 
-        // Arrow remains completely visible, connected and solid until fully exiting off-screen
-        if (rawProgress < 1) {
-          animFrameRef.current = requestAnimationFrame(step);
-        } else {
-          // When 100% past screen boundary, notify parent to safely clean up
-          onFlightComplete?.(arrow.id);
+        // Dynamically track flight gradient from tail (light) to head (dark)!
+        if (flightGradRef.current) {
+          flightGradRef.current.setAttribute('x1', `${newTail.x}`);
+          flightGradRef.current.setAttribute('y1', `${newTail.y}`);
+          flightGradRef.current.setAttribute('x2', `${newHeadTip.x}`);
+          flightGradRef.current.setAttribute('y2', `${newHeadTip.y}`);
         }
-      };
+      }
 
-      animFrameRef.current = requestAnimationFrame(step);
-
-      return () => {
-        if (animFrameRef.current !== null) {
-          cancelAnimationFrame(animFrameRef.current);
+      // Arrow remains completely visible, connected and solid until fully exiting off-screen
+      if (rawProgress < 1) {
+        animFrameRef.current = requestAnimationFrame(step);
+      } else {
+        // Flight completed! Immediately hide element so it can NEVER reappear/repeat on screen
+        if (groupRef.current) {
+          groupRef.current.style.display = 'none';
         }
-      };
-    }
-  }, [isFlying, flightData, originalLength, cornerRadius, arrowHeadSize, arrow.id, onFlightComplete]);
+        flightActiveRef.current = false;
+        animFrameRef.current = null;
+        onFlightCompleteRef.current?.(arrow.id);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (!isFlying && animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+  }, [isFlying, arrow.id, originalLength, cornerRadius, arrowHeadSize, cellSize, arrow.points, arrow.dir, basePixelPoints, boardWidth, boardHeight, zoomScale, pan]);
 
   // Bounce-back recoil translations when collision occurs:
   // Smooth backward movement away from obstacle (prevents penetrating or overlapping into other arrows)
