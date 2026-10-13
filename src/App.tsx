@@ -493,39 +493,10 @@ export default function App() {
     // Trigger flight animation
     setFlyingArrowIds((prev) => new Set(prev).add(arrow.id));
 
+    // Fallback safety timeout ensuring arrow cleanup even if the tab is throttled or in background
     setTimeout(() => {
-      // Synchronously delete arrow from activeArrowIdsRef
-      activeArrowIdsRef.current.delete(arrow.id);
-      const isLevelFinished = activeArrowIdsRef.current.size === 0;
-
-      // Remove escaped arrow from active grid
-      setActiveArrows((prev) => {
-        const next = prev.filter((a) => a.id !== arrow.id);
-        // Check 25%, 50%, 75% progress milestones with emojis
-        const total = currentLevel.arrows.length;
-        const cleared = total - next.length;
-        if (total >= 4 && next.length > 0) {
-          if (cleared >= Math.ceil(total * 0.75)) {
-            triggerMilestone(75);
-          } else if (cleared >= Math.ceil(total * 0.50)) {
-            triggerMilestone(50);
-          } else if (cleared >= Math.ceil(total * 0.25)) {
-            triggerMilestone(25);
-          }
-        }
-        return next;
-      });
-
-      setFlyingArrowIds((prev) => {
-        const next = new Set(prev);
-        next.delete(arrow.id);
-        return next;
-      });
-
-      if (isLevelFinished) {
-        handleLevelComplete(movesRef.current);
-      }
-    }, 400);
+      handleArrowFlightComplete(arrow.id);
+    }, 2500);
   };
 
   const handleLevelComplete = (finalMoves: number) => {
@@ -665,6 +636,41 @@ export default function App() {
         setActiveTab('home');
       }
     }, 2400);
+  };
+
+  // Safe arrow cleanup callback triggered ONLY when the arrow's entire body & tail have crossed 100% off-screen
+  const handleArrowFlightComplete = (arrowId: string) => {
+    if (!activeArrowIdsRef.current.has(arrowId)) return;
+    activeArrowIdsRef.current.delete(arrowId);
+    const isLevelFinished = activeArrowIdsRef.current.size === 0;
+
+    // Remove escaped arrow from active grid
+    setActiveArrows((prev) => {
+      const next = prev.filter((a) => a.id !== arrowId);
+      // Check 25%, 50%, 75% progress milestones with emojis
+      const total = currentLevel.arrows.length;
+      const cleared = total - next.length;
+      if (total >= 4 && next.length > 0) {
+        if (cleared >= Math.ceil(total * 0.75)) {
+          triggerMilestone(75);
+        } else if (cleared >= Math.ceil(total * 0.50)) {
+          triggerMilestone(50);
+        } else if (cleared >= Math.ceil(total * 0.25)) {
+          triggerMilestone(25);
+        }
+      }
+      return next;
+    });
+
+    setFlyingArrowIds((prev) => {
+      const next = new Set(prev);
+      next.delete(arrowId);
+      return next;
+    });
+
+    if (isLevelFinished) {
+      handleLevelComplete(movesRef.current);
+    }
   };
 
   const handleUndo = () => {
@@ -1015,6 +1021,7 @@ export default function App() {
                 hintArrowId={hintArrowId}
                 showTrajectory={settings.showTrajectory}
                 onArrowClick={handleArrowClick}
+                onFlightComplete={handleArrowFlightComplete}
                 isVictory={isVictory || showWinningAnimation}
                 isDarkMode={settings.darkMode}
                 arrowTheme={settings.arrowTheme}

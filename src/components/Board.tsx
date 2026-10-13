@@ -15,6 +15,7 @@ interface BoardProps {
   hintArrowId: string | null;
   showTrajectory?: boolean;
   onArrowClick: (arrow: MazeArrow) => void;
+  onFlightComplete?: (arrowId: string) => void;
   isVictory?: boolean;
   isDarkMode?: boolean;
   arrowTheme?: ArrowTheme;
@@ -88,6 +89,7 @@ export const Board: React.FC<BoardProps> = ({
   hintArrowId,
   showTrajectory = true,
   onArrowClick,
+  onFlightComplete,
   isVictory = false,
   isDarkMode = false,
   arrowTheme = 'classic',
@@ -550,6 +552,10 @@ export const Board: React.FC<BoardProps> = ({
                 arrow={arrow}
                 index={index}
                 cellSize={baseCellSize}
+                boardWidth={boardWidth}
+                boardHeight={boardHeight}
+                zoomScale={zoomScale}
+                pan={pan}
                 isHinted={hintArrowId === arrow.id}
                 isShaking={shakingArrowId === arrow.id}
                 isBlocked={blockedTargetId === arrow.id || shakingArrowId === arrow.id}
@@ -558,6 +564,7 @@ export const Board: React.FC<BoardProps> = ({
                 onClick={handleSafeArrowClick}
                 onHoverStart={handleHoverStart}
                 onHoverEnd={handleHoverEnd}
+                onFlightComplete={onFlightComplete}
                 isDarkMode={isDarkMode}
                 arrowTheme={arrowTheme}
               />

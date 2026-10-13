@@ -17,6 +17,10 @@ interface MazeArrowRendererProps {
   arrow: MazeArrow;
   index?: number;
   cellSize: number;
+  boardWidth?: number;
+  boardHeight?: number;
+  zoomScale?: number;
+  pan?: { x: number; y: number };
   isHinted: boolean;
   isShaking: boolean;
   isBlocked: boolean;
@@ -25,6 +29,7 @@ interface MazeArrowRendererProps {
   onClick: (arrow: MazeArrow) => void;
   onHoverStart?: (arrow: MazeArrow) => void;
   onHoverEnd?: () => void;
+  onFlightComplete?: (arrowId: string) => void;
   isDarkMode?: boolean;
   arrowTheme?: ArrowTheme;
 }
@@ -74,6 +79,10 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   arrow,
   index = 0,
   cellSize,
+  boardWidth,
+  boardHeight,
+  zoomScale,
+  pan,
   isHinted,
   isShaking,
   isBlocked,
@@ -82,6 +91,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
   onClick,
   onHoverStart,
   onHoverEnd,
+  onFlightComplete,
   isDarkMode = false,
   arrowTheme = 'classic',
 }) => {
@@ -135,14 +145,54 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     return buildArrowHeadAtPoint(tip, { x: dc, y: dr }, arrowHeadSize);
   }, [basePixelPoints, dc, dr, arrowHeadSize]);
 
-  // Flight data (extended path & cumulative lengths) computed lazily ONLY when this arrow flies
+  // Flight data (extended path & cumulative lengths) computed lazily ONLY when this arrow flies.
+  // Calculates dynamic distance ensuring the arrow's entire body & tail travel 100% past the screen viewport!
   const flightData = useMemo(() => {
     if (!isFlying) return null;
-    const exitDist = Math.max(450, cellSize * 11);
+    const tip = basePixelPoints[basePixelPoints.length - 1];
+    if (!tip) return null;
+
+    const bWidth = boardWidth ?? 1000;
+    const bHeight = boardHeight ?? 1000;
+    const zScale = Math.max(0.1, zoomScale || 1);
+    const px = pan?.x || 0;
+    const py = pan?.y || 0;
+
+    const winW = typeof window !== 'undefined' && window.innerWidth > 0 ? window.innerWidth : 800;
+    const winH = typeof window !== 'undefined' && window.innerHeight > 0 ? window.innerHeight : 1200;
+
+    // Viewport boundaries projected into SVG coordinate space
+    const screenLeftSvg = bWidth / 2 - (winW / 2 + px) / zScale;
+    const screenRightSvg = bWidth / 2 + (winW / 2 - px) / zScale;
+    const screenTopSvg = bHeight / 2 - (winH / 2 + py) / zScale;
+    const screenBottomSvg = bHeight / 2 + (winH / 2 - py) / zScale;
+
+    // Generous margin (250px) past the screen edge ensuring the arrow's entire tail is well past the visible screen
+    const margin = 250;
+
+    let distToEdge = 1000;
+    const dirLower = String(arrow.dir).toLowerCase();
+    switch (dirLower) {
+      case 'up':
+        distToEdge = (tip.y - screenTopSvg) + margin;
+        break;
+      case 'down':
+        distToEdge = (screenBottomSvg - tip.y) + margin;
+        break;
+      case 'left':
+        distToEdge = (tip.x - screenLeftSvg) + margin;
+        break;
+      case 'right':
+      default:
+        distToEdge = (screenRightSvg - tip.x) + margin;
+        break;
+    }
+
+    const exitDist = Math.max(Math.ceil(distToEdge), cellSize * 25, 1000);
     const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist, cornerRadius);
     const lengths = getPolylineLengths(pts);
     return { pts, lengths, exitDistance: exitDist };
-  }, [isFlying, arrow.points, arrow.dir, cellSize, cornerRadius]);
+  }, [isFlying, arrow.points, arrow.dir, cellSize, cornerRadius, basePixelPoints, boardWidth, boardHeight, zoomScale, pan]);
 
   const centerPoint = useMemo(() => ({
     x: basePixelPoints.reduce((acc, p) => acc + p.x, 0) / Math.max(1, basePixelPoints.length),
@@ -151,18 +201,20 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
 
   // High-performance direct-DOM parametric Snake slithering animation loop
   // Zero React state updates / zero React re-renders during flight!
-  // Exact 0.40s (400ms) flight with natural harmonic acceleration & deceleration!
+  // Exact uniform physical velocity across all arrows (1600 px/sec) with linear smooth slithering
   useEffect(() => {
     if (isFlying && flightData) {
       const startTime = performance.now();
-      const duration = 400; // Calibrated to exactly 0.40 seconds!
+      // Constant uniform speed: 1600 px/sec (1.6 px/ms) for all arrows!
+      const SPEED_PX_PER_SEC = 1600;
       const totalTravelDistance = originalLength + flightData.exitDistance;
+      const duration = Math.max(250, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000));
 
       const step = (now: number) => {
         const elapsed = now - startTime;
         const rawProgress = Math.min(1, elapsed / duration);
-        // Harmonic cosine easing curve: natural continuous acceleration and deceleration
-        const eased = (1 - Math.cos(rawProgress * Math.PI)) / 2;
+        // Linear constant velocity: every arrow moves at the exact same uniform speed with 0 jerk
+        const eased = rawProgress;
 
         const travelDist = eased * totalTravelDistance;
         const startDist = travelDist;
@@ -198,6 +250,9 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         // Arrow remains completely visible, connected and solid until fully exiting off-screen
         if (rawProgress < 1) {
           animFrameRef.current = requestAnimationFrame(step);
+        } else {
+          // When 100% past screen boundary, notify parent to safely clean up
+          onFlightComplete?.(arrow.id);
         }
       };
 
@@ -209,7 +264,7 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         }
       };
     }
-  }, [isFlying, flightData, originalLength, cornerRadius, arrowHeadSize]);
+  }, [isFlying, flightData, originalLength, cornerRadius, arrowHeadSize, arrow.id, onFlightComplete]);
 
   // Bounce-back recoil translations when collision occurs:
   // Smooth backward movement away from obstacle (prevents penetrating or overlapping into other arrows)
@@ -244,11 +299,12 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         if (p.y < minY) minY = p.y;
         if (p.y > maxY) maxY = p.y;
       });
-      if (arrow.dir === 'UP') {
+      const dirLower = String(arrow.dir).toLowerCase();
+      if (dirLower === 'up') {
         x1 = (minX + maxX) / 2; y1 = maxY; x2 = (minX + maxX) / 2; y2 = minY;
-      } else if (arrow.dir === 'DOWN') {
+      } else if (dirLower === 'down') {
         x1 = (minX + maxX) / 2; y1 = minY; x2 = (minX + maxX) / 2; y2 = maxY;
-      } else if (arrow.dir === 'LEFT') {
+      } else if (dirLower === 'left') {
         x1 = maxX; y1 = (minY + maxY) / 2; x2 = minX; y2 = (minY + maxY) / 2;
       } else {
         x1 = minX; y1 = (minY + maxY) / 2; x2 = maxX; y2 = (minY + maxY) / 2;
