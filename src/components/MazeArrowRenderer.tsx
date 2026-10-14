@@ -182,18 +182,22 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     }
 
     const tip = basePixelPoints[basePixelPoints.length - 1];
-    if (!tip) return;
+    if (!tip || !Number.isFinite(tip.x) || !Number.isFinite(tip.y)) {
+      flightActiveRef.current = false;
+      onFlightCompleteRef.current?.(arrow.id);
+      return;
+    }
 
     flightActiveRef.current = true;
 
-    const bWidth = boardWidth ?? 1000;
-    const bHeight = boardHeight ?? 1000;
-    const zScale = Math.max(0.1, zoomScale || 1);
-    const px = pan?.x || 0;
-    const py = pan?.y || 0;
+    const bWidth = Number.isFinite(boardWidth) && (boardWidth ?? 0) > 0 ? (boardWidth as number) : 1000;
+    const bHeight = Number.isFinite(boardHeight) && (boardHeight ?? 0) > 0 ? (boardHeight as number) : 1000;
+    const zScale = Number.isFinite(zoomScale) && (zoomScale ?? 0) > 0 ? (zoomScale as number) : 1;
+    const px = Number.isFinite(pan?.x) ? (pan!.x as number) : 0;
+    const py = Number.isFinite(pan?.y) ? (pan!.y as number) : 0;
 
-    const winW = typeof window !== 'undefined' && window.innerWidth > 0 ? window.innerWidth : 800;
-    const winH = typeof window !== 'undefined' && window.innerHeight > 0 ? window.innerHeight : 1200;
+    const winW = typeof window !== 'undefined' && Number.isFinite(window.innerWidth) && window.innerWidth > 0 ? window.innerWidth : 800;
+    const winH = typeof window !== 'undefined' && Number.isFinite(window.innerHeight) && window.innerHeight > 0 ? window.innerHeight : 1200;
 
     // Viewport boundaries projected into SVG coordinate space
     const screenLeftSvg = bWidth / 2 - (winW / 2 + px) / zScale;
@@ -222,7 +226,8 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
         break;
     }
 
-    const exitDist = Math.max(Math.ceil(distToEdge), cellSize * 25, 1000);
+    const safeDistToEdge = Number.isFinite(distToEdge) && distToEdge > 0 ? distToEdge : 1000;
+    const exitDist = Math.max(Math.ceil(safeDistToEdge), cellSize * 25, 1000);
     const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist, cornerRadius);
     const lengths = getPolylineLengths(pts);
     const fData = { pts, lengths, exitDistance: exitDist };
@@ -231,57 +236,74 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     const startTime = performance.now();
     // Constant uniform speed: 1600 px/sec (1.6 px/ms) for all arrows!
     const SPEED_PX_PER_SEC = 1600;
-    const totalTravelDistance = originalLength + fData.exitDistance;
+    const safeOrigLength = Number.isFinite(originalLength) && originalLength > 0 ? originalLength : cellSize * 2;
+    const totalTravelDistance = safeOrigLength + fData.exitDistance;
     const duration = Math.max(250, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000));
 
     const step = (now: number) => {
-      const elapsed = now - startTime;
-      const rawProgress = Math.min(1, elapsed / duration);
-      // Linear constant velocity: every arrow moves at the exact same uniform speed with 0 jerk
-      const eased = rawProgress;
+      try {
+        const elapsed = now - startTime;
+        const rawProgress = Math.min(1, duration > 0 ? elapsed / duration : 1);
+        // Linear constant velocity: every arrow moves at the exact same uniform speed with 0 jerk
+        const eased = rawProgress;
 
-      const travelDist = eased * totalTravelDistance;
-      const startDist = travelDist;
-      const endDist = Math.min(travelDist + originalLength, fData.lengths.total);
+        const travelDist = eased * totalTravelDistance;
+        const startDist = travelDist;
+        const endDist = Math.min(travelDist + safeOrigLength, fData.lengths.total);
 
-      const sliced = slicePolyline(fData.pts, startDist, endDist, fData.lengths);
-      if (sliced.points.length >= 2) {
-        const newBodyPath = buildPolylinePixelPath(sliced.points);
-        const newHeadTip = sliced.points[sliced.points.length - 1];
-        const newTail = sliced.points[0];
-        const newHeadPath = buildArrowHeadAtPoint(newHeadTip, sliced.headTangent, arrowHeadSize);
+        const sliced = slicePolyline(fData.pts, startDist, endDist, fData.lengths);
+        if (sliced.points.length >= 2) {
+          const newBodyPath = buildPolylinePixelPath(sliced.points);
+          const newHeadTip = sliced.points[sliced.points.length - 1];
+          const newTail = sliced.points[0];
+          const newHeadPath = buildArrowHeadAtPoint(newHeadTip, sliced.headTangent, arrowHeadSize);
 
-        if (bodyPathRef.current) {
-          bodyPathRef.current.setAttribute('d', newBodyPath);
+          if (bodyPathRef.current) {
+            bodyPathRef.current.setAttribute('d', newBodyPath);
+          }
+          if (hitPathRef.current) {
+            hitPathRef.current.setAttribute('d', newBodyPath);
+          }
+          if (headPathRef.current) {
+            headPathRef.current.setAttribute('d', newHeadPath);
+            headPathRef.current.style.transformOrigin = `${newHeadTip.x}px ${newHeadTip.y}px`;
+          }
+
+          // Dynamically track flight gradient from tail (light) to head (dark)!
+          if (flightGradRef.current) {
+            flightGradRef.current.setAttribute('x1', `${newTail.x}`);
+            flightGradRef.current.setAttribute('y1', `${newTail.y}`);
+            flightGradRef.current.setAttribute('x2', `${newHeadTip.x}`);
+            flightGradRef.current.setAttribute('y2', `${newHeadTip.y}`);
+          }
         }
-        if (hitPathRef.current) {
-          hitPathRef.current.setAttribute('d', newBodyPath);
-        }
-        if (headPathRef.current) {
-          headPathRef.current.setAttribute('d', newHeadPath);
-          headPathRef.current.style.transformOrigin = `${newHeadTip.x}px ${newHeadTip.y}px`;
-        }
 
-        // Dynamically track flight gradient from tail (light) to head (dark)!
-        if (flightGradRef.current) {
-          flightGradRef.current.setAttribute('x1', `${newTail.x}`);
-          flightGradRef.current.setAttribute('y1', `${newTail.y}`);
-          flightGradRef.current.setAttribute('x2', `${newHeadTip.x}`);
-          flightGradRef.current.setAttribute('y2', `${newHeadTip.y}`);
+        // Arrow remains completely visible, connected and solid until fully exiting off-screen
+        if (rawProgress < 1) {
+          animFrameRef.current = requestAnimationFrame(step);
+        } else {
+          // Flight completed! Immediately hide element so it can NEVER reappear/repeat on screen
+          if (groupRef.current) {
+            groupRef.current.style.display = 'none';
+          }
+          flightActiveRef.current = false;
+          animFrameRef.current = null;
+          try {
+            onFlightCompleteRef.current?.(arrow.id);
+          } catch (completeErr) {
+            console.error('Error in onFlightComplete callback:', completeErr);
+          }
         }
-      }
-
-      // Arrow remains completely visible, connected and solid until fully exiting off-screen
-      if (rawProgress < 1) {
-        animFrameRef.current = requestAnimationFrame(step);
-      } else {
-        // Flight completed! Immediately hide element so it can NEVER reappear/repeat on screen
+      } catch (err) {
+        console.error('Error during arrow flight animation step:', err);
         if (groupRef.current) {
           groupRef.current.style.display = 'none';
         }
         flightActiveRef.current = false;
         animFrameRef.current = null;
-        onFlightCompleteRef.current?.(arrow.id);
+        try {
+          onFlightCompleteRef.current?.(arrow.id);
+        } catch {}
       }
     };
 

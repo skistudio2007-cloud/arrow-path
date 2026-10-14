@@ -303,39 +303,46 @@ export default function App() {
 
   // Initialize or load a level
   const triggerMilestone = useCallback((percent: 25 | 50 | 75) => {
+    let shouldTrigger = false;
     setAchievedMilestones((prev) => {
       if (prev.has(percent)) return prev;
+      shouldTrigger = true;
       const next = new Set(prev);
       next.add(percent);
+      return next;
+    });
 
-      const milestoneConfig = {
-        25: {
-          percent: 25 as const,
-          emoji: '😊',
-          gradient: 'from-amber-100 via-yellow-200 to-amber-300 border-amber-300/90',
-          glow: 'rgba(245, 158, 11, 0.45)',
-        },
-        50: {
-          percent: 50 as const,
-          emoji: '😄',
-          gradient: 'from-orange-100 via-amber-200 to-orange-400 border-orange-300/90',
-          glow: 'rgba(249, 115, 22, 0.5)',
-        },
-        75: {
-          percent: 75 as const,
-          emoji: '🥳',
-          gradient: 'from-pink-100 via-rose-200 to-amber-300 border-rose-300/90',
-          glow: 'rgba(236, 72, 153, 0.5)',
-        },
-      }[percent];
+    if (!shouldTrigger) return;
 
-      setActiveMilestone(milestoneConfig);
+    const milestoneConfig = {
+      25: {
+        percent: 25 as const,
+        emoji: '😊',
+        gradient: 'from-amber-100 via-yellow-200 to-amber-300 border-amber-300/90',
+        glow: 'rgba(245, 158, 11, 0.45)',
+      },
+      50: {
+        percent: 50 as const,
+        emoji: '😄',
+        gradient: 'from-orange-100 via-amber-200 to-orange-400 border-orange-300/90',
+        glow: 'rgba(249, 115, 22, 0.5)',
+      },
+      75: {
+        percent: 75 as const,
+        emoji: '🥳',
+        gradient: 'from-pink-100 via-rose-200 to-amber-300 border-rose-300/90',
+        glow: 'rgba(236, 72, 153, 0.5)',
+      },
+    }[percent];
 
-      // Celebratory micro-confetti around round smiley
-      try {
+    setActiveMilestone(milestoneConfig);
+
+    // Celebratory micro-confetti around round smiley
+    try {
+      if (typeof window !== 'undefined') {
         confetti({
-          particleCount: 18,
-          spread: 60,
+          particleCount: 16,
+          spread: 55,
           origin: { y: 0.26 },
           colors:
             percent === 25
@@ -345,19 +352,17 @@ export default function App() {
               : ['#ec4899', '#f43f5e', '#a855f7'],
           disableForReducedMotion: true,
         });
-      } catch {
-        // Ignore
       }
+    } catch {
+      // Ignore
+    }
 
-      if (milestoneTimeoutRef.current) {
-        clearTimeout(milestoneTimeoutRef.current);
-      }
-      milestoneTimeoutRef.current = window.setTimeout(() => {
-        setActiveMilestone(null);
-      }, 1600);
-
-      return next;
-    });
+    if (milestoneTimeoutRef.current) {
+      clearTimeout(milestoneTimeoutRef.current);
+    }
+    milestoneTimeoutRef.current = window.setTimeout(() => {
+      setActiveMilestone(null);
+    }, 1600);
   }, []);
 
   // Initialize or load a level
@@ -647,18 +652,26 @@ export default function App() {
 
   // Safe arrow cleanup callback triggered ONLY when the arrow's entire body & tail have crossed 100% off-screen
   const handleArrowFlightComplete = useCallback((arrowId: string) => {
-    flyingArrowIdsRef.current.delete(arrowId);
-    if (!activeArrowIdsRef.current.has(arrowId)) return;
-    activeArrowIdsRef.current.delete(arrowId);
-    const isLevelFinished = activeArrowIdsRef.current.size === 0;
+    try {
+      flyingArrowIdsRef.current.delete(arrowId);
+      if (!activeArrowIdsRef.current.has(arrowId)) return;
+      activeArrowIdsRef.current.delete(arrowId);
+      const isLevelFinished = activeArrowIdsRef.current.size === 0;
 
-    // Remove escaped arrow from active grid
-    setActiveArrows((prev) => {
-      const next = prev.filter((a) => a.id !== arrowId);
-      // Check 25%, 50%, 75% progress milestones with emojis
+      // Pure state update removing escaped arrow from active grid
+      setActiveArrows((prev) => prev.filter((a) => a.id !== arrowId));
+
+      setFlyingArrowIds((prev) => {
+        const next = new Set(prev);
+        next.delete(arrowId);
+        return next;
+      });
+
+      // Safely compute and trigger progress milestones outside state reducer
       const total = currentLevelRef.current.arrows.length;
-      const cleared = total - next.length;
-      if (total >= 4 && next.length > 0) {
+      const remainingCount = activeArrowIdsRef.current.size;
+      const cleared = total - remainingCount;
+      if (total >= 4 && remainingCount > 0) {
         if (cleared >= Math.ceil(total * 0.75)) {
           triggerMilestone(75);
         } else if (cleared >= Math.ceil(total * 0.50)) {
@@ -667,17 +680,12 @@ export default function App() {
           triggerMilestone(25);
         }
       }
-      return next;
-    });
 
-    setFlyingArrowIds((prev) => {
-      const next = new Set(prev);
-      next.delete(arrowId);
-      return next;
-    });
-
-    if (isLevelFinished) {
-      handleLevelComplete(movesRef.current);
+      if (isLevelFinished) {
+        handleLevelComplete(movesRef.current);
+      }
+    } catch (err) {
+      console.error('Error in handleArrowFlightComplete:', err);
     }
   }, [triggerMilestone]);
 
@@ -848,7 +856,7 @@ export default function App() {
     return currentLevel.theme;
   }, [settings.themeOverride, currentLevel.theme]);
 
-  const themeBg = activeTheme?.bgClass || 'bg-white';
+  const themeBg = activeTheme?.bgClass || 'bg-[#edf1fa]';
 
   return (
     <div className={`w-full h-full min-h-[100dvh] h-[100dvh] overflow-hidden ${

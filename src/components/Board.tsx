@@ -182,17 +182,21 @@ export const Board: React.FC<BoardProps> = ({
   }, []);
 
   const clampPanToBounds = useCallback((p: { x: number; y: number }, scale = zoomScaleRef.current) => {
-    const { minX, maxX, minY, maxY } = getScrollBounds(scale);
+    const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    const { minX, maxX, minY, maxY } = getScrollBounds(safeScale);
+    const px = Number.isFinite(p.x) ? p.x : 0;
+    const py = Number.isFinite(p.y) ? p.y : 0;
     return {
-      x: +Math.min(maxX, Math.max(minX, p.x)).toFixed(1),
-      y: +Math.min(maxY, Math.max(minY, p.y)).toFixed(1),
+      x: +Math.min(maxX, Math.max(minX, px)).toFixed(1),
+      y: +Math.min(maxY, Math.max(minY, py)).toFixed(1),
     };
   }, [getScrollBounds]);
 
   const applyDragWithDamping = useCallback((raw: { x: number; y: number }, scale = zoomScaleRef.current) => {
-    const { minX, maxX, minY, maxY } = getScrollBounds(scale);
-    let x = raw.x;
-    let y = raw.y;
+    const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    const { minX, maxX, minY, maxY } = getScrollBounds(safeScale);
+    let x = Number.isFinite(raw.x) ? raw.x : 0;
+    let y = Number.isFinite(raw.y) ? raw.y : 0;
     const maxOverscroll = 45; // Smooth natural overscroll elasticity
 
     if (x > maxX) {
@@ -282,11 +286,15 @@ export const Board: React.FC<BoardProps> = ({
         rafId = null;
       }
       if (pendingZoom !== null) {
-        setZoomScale(pendingZoom);
+        if (Number.isFinite(pendingZoom) && pendingZoom >= MIN_ZOOM && pendingZoom <= MAX_ZOOM) {
+          setZoomScale(pendingZoom);
+        }
         pendingZoom = null;
       }
       if (pendingPan !== null) {
-        setPan(pendingPan);
+        if (Number.isFinite(pendingPan.x) && Number.isFinite(pendingPan.y)) {
+          setPan(pendingPan);
+        }
         pendingPan = null;
       }
     };
@@ -296,11 +304,15 @@ export const Board: React.FC<BoardProps> = ({
       rafId = requestAnimationFrame(() => {
         rafId = null;
         if (pendingZoom !== null) {
-          setZoomScale(pendingZoom);
+          if (Number.isFinite(pendingZoom) && pendingZoom >= MIN_ZOOM && pendingZoom <= MAX_ZOOM) {
+            setZoomScale(pendingZoom);
+          }
           pendingZoom = null;
         }
         if (pendingPan !== null) {
-          setPan(pendingPan);
+          if (Number.isFinite(pendingPan.x) && Number.isFinite(pendingPan.y)) {
+            setPan(pendingPan);
+          }
           pendingPan = null;
         }
       });
@@ -320,7 +332,11 @@ export const Board: React.FC<BoardProps> = ({
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-        const scaleFactor = currentDist / touchStartDistRef.current;
+        const startDist = touchStartDistRef.current ?? 0;
+        if (startDist <= 0 || !Number.isFinite(currentDist)) return;
+        const scaleFactor = currentDist / startDist;
+        if (!Number.isFinite(scaleFactor) || scaleFactor <= 0) return;
+
         const newScale = Math.min(
           MAX_ZOOM,
           Math.max(MIN_ZOOM, +(touchStartScaleRef.current * scaleFactor).toFixed(2))
@@ -512,7 +528,7 @@ export const Board: React.FC<BoardProps> = ({
           style={{
             width: `${boardWidth}px`,
             height: `${boardHeight}px`,
-            transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoomScale})`,
+            transform: `translate3d(${Number.isFinite(pan.x) ? pan.x : 0}px, ${Number.isFinite(pan.y) ? pan.y : 0}px, 0) scale(${Number.isFinite(zoomScale) && zoomScale > 0 ? zoomScale : 1})`,
             transformOrigin: 'center center',
             willChange: 'transform',
           }}

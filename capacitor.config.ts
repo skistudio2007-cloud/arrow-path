@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.arrowgo.puzzle',
   appName: 'Arrow Go',
   webDir: 'dist',
+  backgroundColor: '#edf1fa',
   server: {
     androidScheme: 'https',
   },
