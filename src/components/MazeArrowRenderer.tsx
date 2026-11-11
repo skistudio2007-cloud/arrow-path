@@ -244,8 +244,15 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
       try {
         const elapsed = now - startTime;
         const rawProgress = Math.min(1, duration > 0 ? elapsed / duration : 1);
-        // Linear constant velocity: every arrow moves at the exact same uniform speed with 0 jerk
-        const eased = rawProgress;
+        // Buttery smooth launch: silky smooth ease-in from rest, then cruise at uniform top speed
+        let eased = rawProgress;
+        const a = 0.12; // first 12% accelerates smoothly from rest
+        const v = 1 / (1 - a / 2); // constant uniform cruising velocity
+        if (rawProgress < a) {
+          eased = (v / (2 * a)) * rawProgress * rawProgress;
+        } else {
+          eased = v * (rawProgress - a / 2);
+        }
 
         const travelDist = eased * totalTravelDistance;
         const startDist = travelDist;
@@ -317,10 +324,22 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
     };
   }, [isFlying, arrow.id, originalLength, cornerRadius, arrowHeadSize, cellSize, arrow.points, arrow.dir, basePixelPoints, boardWidth, boardHeight, zoomScale, pan]);
 
-  // Bounce-back recoil translations when collision occurs:
-  // Smooth backward movement away from obstacle (prevents penetrating or overlapping into other arrows)
-  const shakeX = isShaking ? [0, dc * 2.5, -dc * 9, -dc * 5, -dc * 1.5, 0] : 0;
-  const shakeY = isShaking ? [0, dr * 2.5, -dr * 9, -dr * 5, -dr * 1.5, 0] : 0;
+  // Super satisfying physical elastic bounce-back recoil when blocked:
+  // 1. Arrow lunges forward towards the obstacle (+dc * forwardDist)
+  // 2. High-energy elastic rebound bouncing backwards away from obstacle (-dc * reboundDist)
+  // 3. Spring secondary rebound (+dc * secondaryDist)
+  // 4. Subtle dampening (-dc * 2)
+  // 5. Settles back cleanly to rest (0)
+  const forwardDist = Math.max(10, Math.min(16, cellSize * 0.35));
+  const reboundDist = Math.max(14, Math.min(22, cellSize * 0.48));
+  const secondaryDist = Math.max(4, Math.min(8, cellSize * 0.18));
+
+  const bounceX = isShaking
+    ? [0, dc * forwardDist, -dc * reboundDist, dc * secondaryDist, -dc * 2, 0]
+    : 0;
+  const bounceY = isShaking
+    ? [0, dr * forwardDist, -dr * reboundDist, dr * secondaryDist, -dr * 2, 0]
+    : 0;
 
   const bodyPath = staticBodyPath;
   const headPath = staticHeadPath;
@@ -497,22 +516,20 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
       }}
       animate={{
         opacity: 1,
-        scale: isFlying ? [1, 1.12, 1.04] : (isShaking ? [1, 0.94, 1.05, 1] : 1),
-        x: isFlying ? 0 : (isShaking ? shakeX : 0),
-        y: isFlying ? 0 : (isShaking ? shakeY : 0),
+        scale: isFlying ? 1 : (isShaking ? [1, 1.08, 0.92, 1.04, 0.98, 1] : 1),
+        x: isFlying ? 0 : (isShaking ? bounceX : 0),
+        y: isFlying ? 0 : (isShaking ? bounceY : 0),
       }}
       transition={{
         opacity: { duration: 0.2, delay: isDense ? 0 : arrangeDelay },
-        scale: isFlying
-          ? { duration: 0.25, ease: 'easeOut' }
-          : isShaking
-          ? { duration: 0.42, ease: 'easeInOut' }
+        scale: isShaking
+          ? { duration: 0.46, times: [0, 0.18, 0.44, 0.70, 0.88, 1], ease: 'easeOut' }
           : { type: 'spring', stiffness: 450, damping: 22, delay: isDense ? 0 : arrangeDelay },
         y: isShaking
-          ? { duration: 0.36, ease: [0.25, 1, 0.5, 1] }
+          ? { duration: 0.46, times: [0, 0.18, 0.44, 0.70, 0.88, 1], ease: 'easeOut' }
           : { type: 'spring', stiffness: 450, damping: 22, delay: isDense ? 0 : arrangeDelay },
         x: isShaking
-          ? { duration: 0.36, ease: [0.25, 1, 0.5, 1] }
+          ? { duration: 0.46, times: [0, 0.18, 0.44, 0.70, 0.88, 1], ease: 'easeOut' }
           : { duration: 0.1 },
       }}
       style={{

@@ -448,11 +448,12 @@ export default function App() {
     );
 
     if (!canEscape) {
-      // Collision / Blocked - play muted mechanical key bottom-out sound
+      // Collision / Blocked - play tactile mechanical key click + deep physical bounce bonk!
       setComboCount(0);
+      soundManager.playBump();
       soundManager.playKeyboardSound(true);
       if (settings.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(40);
+        navigator.vibrate([30, 45, 25]);
       }
       setShakingArrowId(arrow.id);
       setBlockedTargetId(blockedBy ? blockedBy.id : null);
@@ -461,7 +462,7 @@ export default function App() {
       setLives((prev) => {
         const next = prev - 1;
         if (next <= 0) {
-          setTimeout(() => setIsGameOver(true), 350);
+          setTimeout(() => setIsGameOver(true), 420);
         }
         return Math.max(0, next);
       });
@@ -469,7 +470,7 @@ export default function App() {
       setTimeout(() => {
         setShakingArrowId(null);
         setBlockedTargetId(null);
-      }, 380);
+      }, 460);
       return;
     }
 
@@ -614,11 +615,46 @@ export default function App() {
       return updated;
     });
 
-    // After praise animation plays (~800ms), transition smoothly to Celebration Screen (VictoryModal)
+    const completedLevelNum = currentLevelId;
+
+    if (completedLevelNum < TOTAL_LEVELS) {
+      const nextId = completedLevelNum + 1;
+      setSlideFromLevelId(completedLevelNum); // Trigger number slide on Home screen from completedLevelNum to nextId!
+      setCurrentLevelId(nextId);
+      const nextLevel = getLevelById(nextId);
+      loadLevel(nextLevel, false);
+      try {
+        localStorage.setItem('arrowmaze_current_level_id', String(nextId));
+      } catch {
+        // Ignore
+      }
+    }
+
+    let isRemoveAds = false;
+    try {
+      isRemoveAds = localStorage.getItem('arrowgo_remove_ads') === 'true';
+    } catch {}
+
+    // No level complete screen needed! After brief victory celebration (~700ms), transition directly to Home screen
     winningAnimTimeoutRef.current = window.setTimeout(() => {
       setShowWinningAnimation(false);
-      setIsVictory(true);
-    }, 800);
+      setIsVictory(false);
+
+      if (shouldTriggerInterstitial(completedLevelNum) && !isRemoveAds) {
+        showInterstitialAd(
+          () => {
+            setCurrentScreen('tabs');
+            setActiveTab('home');
+          },
+          () => {
+            setActiveInterstitialLevel(completedLevelNum);
+          }
+        );
+      } else {
+        setCurrentScreen('tabs');
+        setActiveTab('home');
+      }
+    }, 700);
   };
 
   useEffect(() => {
