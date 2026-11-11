@@ -8,6 +8,7 @@ import { HomeScreen } from './components/HomeScreen';
 import { CollectionScreen } from './components/CollectionScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { BottomNavBar, TabType } from './components/BottomNavBar';
+import { VictoryModal } from './components/VictoryModal';
 import { GameOverModal } from './components/GameOverModal';
 import { LevelSelectModal } from './components/LevelSelectModal';
 import { RewardedAdModal, RewardType } from './components/RewardedAdModal';
@@ -156,6 +157,11 @@ export default function App() {
   useEffect(() => {
     currentLevelRef.current = currentLevel;
   }, [currentLevel]);
+  const currentLevelIdRef = useRef<number>(currentLevelId);
+  useEffect(() => {
+    currentLevelIdRef.current = currentLevelId;
+  }, [currentLevelId]);
+  const handleLevelCompleteRef = useRef<(finalMoves: number) => void>(() => {});
   const [shakingArrowId, setShakingArrowId] = useState<string | null>(null);
   const [blockedTargetId, setBlockedTargetId] = useState<string | null>(null);
   const [hintArrowId, setHintArrowId] = useState<string | null>(null);
@@ -513,7 +519,6 @@ export default function App() {
 
   const handleLevelComplete = (finalMoves: number) => {
     soundManager.playSuccess();
-    setIsVictory(true);
 
     // Pick dynamic praise word (GOOD, FANTASTIC, SUPERB, WOW, AMAZING)
     const minMoves = currentLevel.minMoves || currentLevel.arrows.length;
@@ -543,6 +548,7 @@ export default function App() {
 
     // Trigger celebration pop & animation on the completed level with Black and Blue theme
     setShowWinningAnimation(true);
+    setIsVictory(false);
     const celebrationColors = ['#0a0a0a', '#1e293b', '#2563eb', '#3b82f6', '#1d4ed8', '#60a5fa', '#ffffff'];
     try {
       confetti({
@@ -608,47 +614,16 @@ export default function App() {
       return updated;
     });
 
-    const completedLevelNum = currentLevelId;
-
-    // After pop celebration finishes (~2400ms), advance level and navigate directly to home screen
+    // After praise animation plays (~800ms), transition smoothly to Celebration Screen (VictoryModal)
     winningAnimTimeoutRef.current = window.setTimeout(() => {
       setShowWinningAnimation(false);
-      setIsVictory(false);
-
-      if (completedLevelNum < TOTAL_LEVELS) {
-        const nextId = completedLevelNum + 1;
-        setSlideFromLevelId(completedLevelNum); // Trigger number slide on Home screen from completedLevelNum to nextId!
-        setCurrentLevelId(nextId);
-        const nextLevel = getLevelById(nextId);
-        loadLevel(nextLevel, false);
-        try {
-          localStorage.setItem('arrowmaze_current_level_id', String(nextId));
-        } catch {
-          // Ignore
-        }
-      }
-
-      let isRemoveAds = false;
-      try {
-        isRemoveAds = localStorage.getItem('arrowgo_remove_ads') === 'true';
-      } catch {}
-
-      if (shouldTriggerInterstitial(completedLevelNum) && !isRemoveAds) {
-        showInterstitialAd(
-          () => {
-            setCurrentScreen('tabs');
-            setActiveTab('home');
-          },
-          () => {
-            setActiveInterstitialLevel(completedLevelNum);
-          }
-        );
-      } else {
-        setCurrentScreen('tabs');
-        setActiveTab('home');
-      }
-    }, 2400);
+      setIsVictory(true);
+    }, 800);
   };
+
+  useEffect(() => {
+    handleLevelCompleteRef.current = handleLevelComplete;
+  });
 
   // Safe arrow cleanup callback triggered ONLY when the arrow's entire body & tail have crossed 100% off-screen
   const handleArrowFlightComplete = useCallback((arrowId: string) => {
@@ -682,7 +657,7 @@ export default function App() {
       }
 
       if (isLevelFinished) {
-        handleLevelComplete(movesRef.current);
+        handleLevelCompleteRef.current?.(movesRef.current);
       }
     } catch (err) {
       console.error('Error in handleArrowFlightComplete:', err);
@@ -717,7 +692,65 @@ export default function App() {
   const handleRestart = () => {
     soundManager.playTap();
     setIsVictory(false);
+    setShowWinningAnimation(false);
+    if (winningAnimTimeoutRef.current) {
+      clearTimeout(winningAnimTimeoutRef.current);
+      winningAnimTimeoutRef.current = null;
+    }
     loadLevel(currentLevel, true);
+  };
+
+  const handleNextLevel = () => {
+    soundManager.playTap();
+    setIsVictory(false);
+    setShowWinningAnimation(false);
+    if (winningAnimTimeoutRef.current) {
+      clearTimeout(winningAnimTimeoutRef.current);
+      winningAnimTimeoutRef.current = null;
+    }
+
+    const completedLevelNum = currentLevelId;
+    if (completedLevelNum < TOTAL_LEVELS) {
+      const nextId = completedLevelNum + 1;
+      setSlideFromLevelId(completedLevelNum);
+      setCurrentLevelId(nextId);
+      const nextLevel = getLevelById(nextId);
+      loadLevel(nextLevel, true);
+      try {
+        localStorage.setItem('arrowmaze_current_level_id', String(nextId));
+      } catch {
+        // Ignore
+      }
+
+      let isRemoveAds = false;
+      try {
+        isRemoveAds = localStorage.getItem('arrowgo_remove_ads') === 'true';
+      } catch {}
+
+      if (shouldTriggerInterstitial(completedLevelNum) && !isRemoveAds) {
+        showInterstitialAd(
+          () => {},
+          () => {
+            setActiveInterstitialLevel(completedLevelNum);
+          }
+        );
+      }
+    } else {
+      setCurrentScreen('tabs');
+      setActiveTab('home');
+    }
+  };
+
+  const handleGoHome = () => {
+    soundManager.playTap();
+    setIsVictory(false);
+    setShowWinningAnimation(false);
+    if (winningAnimTimeoutRef.current) {
+      clearTimeout(winningAnimTimeoutRef.current);
+      winningAnimTimeoutRef.current = null;
+    }
+    setCurrentScreen('tabs');
+    setActiveTab('home');
   };
 
   const handleRevive = () => {
@@ -1124,11 +1157,11 @@ export default function App() {
                   >
                     {/* Animated Letters (Zoom Punch Animation, Black & Blue Theme, Compact Neat Letter Size) */}
                     <div className="flex items-center justify-center flex-wrap px-4 py-2">
-                      {Array.from(currentLanguage === 'hi' ? praiseWord.hi : praiseWord.en).map((char, index) => {
+                      {Array.from(currentLanguage === 'hi' ? (praiseWord?.hi || 'लाजवाब!') : (praiseWord?.en || 'SUPERB!')).map((char, index) => {
                         const isEven = index % 2 === 0;
                         return (
                           <motion.span
-                            key={`${praiseWord.en}-${index}`}
+                            key={`${praiseWord?.en || 'SUPERB'}-${index}`}
                             initial={{
                               opacity: 0,
                               scale: 0.05,
@@ -1208,6 +1241,17 @@ export default function App() {
           </footer>
 
           {/* Gameplay Modals */}
+          <VictoryModal
+            isOpen={isVictory}
+            level={currentLevel}
+            moves={moves}
+            hasNextLevel={currentLevelId < TOTAL_LEVELS}
+            lang={currentLanguage}
+            onNextLevel={handleNextLevel}
+            onReplay={handleRestart}
+            onGoHome={handleGoHome}
+          />
+
           <GameOverModal
             isOpen={isGameOver}
             lang={currentLanguage}

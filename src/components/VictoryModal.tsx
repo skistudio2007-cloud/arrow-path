@@ -27,26 +27,31 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onReplay,
   onGoHome,
 }) => {
-  const isHard = isHardBossLevel(level.id) || level.name.includes('Hard');
+  const levelId = level?.id ?? 1;
+  const levelName = level?.name ?? `Level ${levelId}`;
+  const isHard = isHardBossLevel(levelId) || levelName.includes('Hard');
 
   useEffect(() => {
     if (isOpen) {
       try {
-        confetti({
-          particleCount: 70,
-          spread: 65,
-          origin: { y: 0.58 },
-          colors: isHard
-            ? ['#ef4444', '#f59e0b', '#dc2626', '#f97316', '#fbbf24']
-            : ['#4361ee', '#f59e0b', '#10b981', '#6366f1', '#ec4899'],
-        });
+        if (typeof window !== 'undefined') {
+          confetti({
+            particleCount: 70,
+            spread: 65,
+            origin: { y: 0.58 },
+            colors: isHard
+              ? ['#ef4444', '#f59e0b', '#dc2626', '#f97316', '#fbbf24']
+              : ['#4361ee', '#f59e0b', '#10b981', '#6366f1', '#ec4899'],
+            disableForReducedMotion: true,
+          });
+        }
       } catch {
         // Ignore if canvas-confetti fails
       }
     }
   }, [isOpen, isHard]);
 
-  const minMoves = level.minMoves || level.arrows.length;
+  const minMoves = level?.minMoves || (level?.arrows ? level.arrows.length : 5);
   let stars = 1;
   if (moves <= minMoves) {
     stars = 3;
@@ -64,13 +69,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/35 backdrop-blur-[2px] select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px] select-none">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 14 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 14 }}
             transition={{ type: 'spring', damping: 26, stiffness: 380 }}
-            className="w-full max-w-[340px] sm:max-w-sm bg-white rounded-[32px] p-6 sm:p-7 shadow-2xl shadow-slate-900/15 border border-slate-100 text-center relative max-h-[92dvh] overflow-y-auto"
+            className="w-full max-w-[340px] sm:max-w-sm bg-white dark:bg-[#151d2f] rounded-[32px] p-6 sm:p-7 shadow-2xl shadow-slate-900/15 border border-slate-100 dark:border-[#222e46] text-center relative max-h-[92dvh] overflow-y-auto"
           >
             {/* Top Emblem Badge - Clean White & Gold Circle */}
             <div className="relative z-10 flex justify-center mb-3">
@@ -79,7 +84,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.08, type: 'spring', stiffness: 420, damping: 22 }}
-                  className="w-16 h-16 rounded-full bg-gradient-to-b from-rose-50 to-rose-100/90 flex items-center justify-center shadow-md shadow-rose-500/15 border-2 border-rose-200"
+                  className="w-16 h-16 rounded-full bg-gradient-to-b from-rose-50 to-rose-100/90 dark:from-rose-950/60 dark:to-rose-900/50 flex items-center justify-center shadow-md shadow-rose-500/15 border-2 border-rose-200 dark:border-rose-800/80"
                 >
                   <Flame className="w-8 h-8 text-rose-500 fill-rose-500 drop-shadow-xs" />
                 </motion.div>
@@ -88,7 +93,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.08, type: 'spring', stiffness: 420, damping: 22 }}
-                  className="w-16 h-16 rounded-full bg-gradient-to-b from-amber-50 to-amber-100/90 flex items-center justify-center shadow-md shadow-amber-500/15 border-2 border-amber-200"
+                  className="w-16 h-16 rounded-full bg-gradient-to-b from-amber-50 to-amber-100/90 dark:from-amber-950/60 dark:to-amber-900/50 flex items-center justify-center shadow-md shadow-amber-500/15 border-2 border-amber-200 dark:border-amber-800/80"
                 >
                   <Sparkles className="w-8 h-8 text-amber-500 fill-amber-400 drop-shadow-xs" />
                 </motion.div>
@@ -97,13 +102,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
             {/* Level Cleared Title */}
             <div className="relative z-10">
-              <span className="font-outfit text-[11px] font-bold tracking-[0.22em] uppercase text-slate-400">
-                {t(lang, 'level')} {level.id}
+              <span className="font-outfit text-[11px] font-bold tracking-[0.22em] uppercase text-slate-400 dark:text-slate-400">
+                {t(lang, 'level')} {levelId}
               </span>
-              <h2 className="font-classic text-2xl sm:text-[26px] font-bold tracking-wide text-slate-900 mt-0.5 uppercase">
+              <h2 className="font-classic text-2xl sm:text-[26px] font-bold tracking-wide text-slate-900 dark:text-white mt-0.5 uppercase">
                 {isHard ? t(lang, 'hardLevelCleared') : t(lang, 'levelCleared')}
               </h2>
-              <p className="text-xs text-slate-500 mt-1 max-w-[260px] mx-auto leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-300 mt-1 max-w-[260px] mx-auto leading-relaxed">
                 {isHard ? t(lang, 'hardLevelClearedDesc') : t(lang, 'allArrowsClearedDesc')}
               </p>
             </div>
@@ -129,15 +134,15 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     }}
                     className={`relative p-2 rounded-2xl transition-all duration-300 ${
                       isEarned
-                        ? 'bg-amber-50/90 text-amber-500 shadow-xs border border-amber-200/80'
-                        : 'bg-slate-50 text-slate-300 border border-slate-100'
+                        ? 'bg-amber-50/90 dark:bg-amber-950/40 text-amber-500 shadow-xs border border-amber-200/80 dark:border-amber-700/60'
+                        : 'bg-slate-50 dark:bg-slate-800/80 text-slate-300 dark:text-slate-600 border border-slate-100 dark:border-slate-700/60'
                     }`}
                   >
                     <Star
                       className={`w-7 h-7 ${
                         isEarned
                           ? 'fill-amber-400 stroke-amber-500 filter drop-shadow-xs'
-                          : 'stroke-slate-300 fill-slate-100/50'
+                          : 'stroke-slate-300 dark:stroke-slate-600 fill-slate-100/50 dark:fill-slate-800/50'
                       }`}
                       strokeWidth="2"
                     />
@@ -148,26 +153,26 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
             {/* Rating Tag */}
             <div className="relative z-10 flex justify-center mb-4">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50 px-3.5 py-1 rounded-full border border-amber-200/70 shadow-2xs">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/60 px-3.5 py-1 rounded-full border border-amber-200/70 dark:border-amber-700/60 shadow-2xs">
                 {ratingLabel}
               </span>
             </div>
 
-            {/* Clean White Stats Pill */}
-            <div className="relative z-10 bg-slate-50/70 rounded-2xl p-3.5 border border-slate-100 mb-5 grid grid-cols-2 divide-x divide-slate-200/60">
+            {/* Clean Stats Pill */}
+            <div className="relative z-10 bg-slate-50/70 dark:bg-[#1a243b] rounded-2xl p-3.5 border border-slate-100 dark:border-[#222e46] mb-5 grid grid-cols-2 divide-x divide-slate-200/60 dark:divide-slate-700/60">
               <div className="px-2">
-                <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+                <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-400">
                   {t(lang, 'moves')}
                 </div>
-                <div className="text-xl font-black text-slate-900 tabular-nums font-outfit">
+                <div className="text-xl font-black text-slate-900 dark:text-white tabular-nums font-outfit">
                   {moves}
                 </div>
               </div>
               <div className="px-2">
-                <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+                <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-400">
                   {t(lang, 'parTarget')}
                 </div>
-                <div className="text-xl font-black text-slate-900 tabular-nums font-outfit">
+                <div className="text-xl font-black text-slate-900 dark:text-white tabular-nums font-outfit">
                   {minMoves}
                 </div>
               </div>
@@ -186,7 +191,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
-                <div className="py-2.5 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <div className="py-2.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
                   {t(lang, 'allLevelsCelebration')}
                 </div>
               )}
@@ -196,9 +201,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   type="button"
                   id="btn-replay-level"
                   onClick={onReplay}
-                  className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs border border-slate-200"
+                  className="flex-1 py-2.5 px-3 bg-white dark:bg-[#1a243b] hover:bg-slate-50 dark:hover:bg-[#202c46] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs border border-slate-200 dark:border-[#222e46]"
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span className="truncate">{t(lang, 'replayLevel')}</span>
                 </button>
 
@@ -207,9 +212,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     type="button"
                     id="btn-home-victory"
                     onClick={onGoHome}
-                    className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs border border-slate-200"
+                    className="flex-1 py-2.5 px-3 bg-white dark:bg-[#1a243b] hover:bg-slate-50 dark:hover:bg-[#202c46] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs border border-slate-200 dark:border-[#222e46]"
                   >
-                    <Home className="w-3.5 h-3.5 text-slate-500" />
+                    <Home className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     <span className="truncate">{t(lang, 'home')}</span>
                   </button>
                 )}
