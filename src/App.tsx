@@ -386,11 +386,6 @@ export default function App() {
     setBlockedTargetId(null);
     setHintArrowId(null);
     setIsVictory(false);
-    setShowWinningAnimation(false);
-    if (winningAnimTimeoutRef.current) {
-      clearTimeout(winningAnimTimeoutRef.current);
-      winningAnimTimeoutRef.current = null;
-    }
     setIsGameOver(false);
     setAchievedMilestones(new Set());
     setActiveMilestone(null);
@@ -632,29 +627,30 @@ export default function App() {
 
     const completedLevelNum = currentLevelId;
 
-    if (completedLevelNum < TOTAL_LEVELS) {
-      const nextId = completedLevelNum + 1;
-      setSlideFromLevelId(completedLevelNum); // Trigger number slide on Home screen from completedLevelNum to nextId!
-      setCurrentLevelId(nextId);
-      const nextLevel = getLevelById(nextId);
-      loadLevel(nextLevel, false);
-      try {
-        localStorage.setItem('arrowmaze_current_level_id', String(nextId));
-      } catch {
-        // Ignore
-      }
-    }
-
     let isRemoveAds = false;
     try {
       isRemoveAds = localStorage.getItem('arrowgo_remove_ads') === 'true';
     } catch {}
 
-    // Show full celebration animation (~2200ms) before returning to the Home screen
+    // Show full celebration animation (~2200ms) on the completed level,
+    // and then show the Home screen (NOT next level)
     winningAnimTimeoutRef.current = window.setTimeout(() => {
       setShowWinningAnimation(false);
       setIsVictory(false);
 
+      // Advance level so Home screen displays newly unlocked level with smooth number slide
+      if (completedLevelNum < TOTAL_LEVELS) {
+        const nextId = completedLevelNum + 1;
+        setSlideFromLevelId(completedLevelNum);
+        setCurrentLevelId(nextId);
+        try {
+          localStorage.setItem('arrowmaze_current_level_id', String(nextId));
+        } catch {
+          // Ignore
+        }
+      }
+
+      // Transition directly to Home screen
       if (shouldTriggerInterstitial(completedLevelNum) && !isRemoveAds) {
         showInterstitialAd(
           () => {
