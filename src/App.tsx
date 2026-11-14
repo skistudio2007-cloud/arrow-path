@@ -547,13 +547,13 @@ export default function App() {
     }
     setPraiseWord(picked);
 
-    // Trigger celebration pop & animation on the completed level with Black and Blue theme
+    // Trigger full celebration pop & animation on the completed level with Black and Blue theme
     setShowWinningAnimation(true);
     setIsVictory(false);
     const celebrationColors = ['#0a0a0a', '#1e293b', '#2563eb', '#3b82f6', '#1d4ed8', '#60a5fa', '#ffffff'];
     try {
       confetti({
-        particleCount: 40,
+        particleCount: 45,
         angle: 60,
         spread: 60,
         origin: { x: 0.08, y: 0.65 },
@@ -561,7 +561,7 @@ export default function App() {
         disableForReducedMotion: true,
       });
       confetti({
-        particleCount: 40,
+        particleCount: 45,
         angle: 120,
         spread: 60,
         origin: { x: 0.92, y: 0.65 },
@@ -569,12 +569,27 @@ export default function App() {
         disableForReducedMotion: true,
       });
       confetti({
-        particleCount: 36,
+        particleCount: 40,
         spread: 90,
         origin: { x: 0.5, y: 0.5 },
         colors: celebrationColors,
         disableForReducedMotion: true,
       });
+
+      // Second celebratory confetti burst for a grand full celebration
+      window.setTimeout(() => {
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 100,
+            origin: { x: 0.5, y: 0.45 },
+            colors: celebrationColors,
+            disableForReducedMotion: true,
+          });
+        } catch {
+          // Ignore
+        }
+      }, 380);
     } catch {
       // Ignore
     }
@@ -635,7 +650,7 @@ export default function App() {
       isRemoveAds = localStorage.getItem('arrowgo_remove_ads') === 'true';
     } catch {}
 
-    // No level complete screen needed! After brief victory celebration (~700ms), transition directly to Home screen
+    // Show full celebration animation (~2200ms) before returning to the Home screen
     winningAnimTimeoutRef.current = window.setTimeout(() => {
       setShowWinningAnimation(false);
       setIsVictory(false);
@@ -654,7 +669,7 @@ export default function App() {
         setCurrentScreen('tabs');
         setActiveTab('home');
       }
-    }, 700);
+    }, 2200);
   };
 
   useEffect(() => {
