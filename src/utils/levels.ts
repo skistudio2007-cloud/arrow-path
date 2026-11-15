@@ -261,9 +261,18 @@ export function hasAnyHeadToHeadConflict(arrows: MazeArrow[]): boolean {
   return false;
 }
 
+// Persistent, zero-allocation shared spatial grid buffer
+let sharedEscapeGrid = new Int16Array(1024);
+function getSharedEscapeGrid(size: number): Int16Array {
+  if (sharedEscapeGrid.length < size) {
+    sharedEscapeGrid = new Int16Array(Math.max(size, sharedEscapeGrid.length * 2));
+  }
+  return sharedEscapeGrid;
+}
+
 /**
  * Checks if a maze arrow can escape out of the grid without hitting any other arrow.
- * High-performance spatial check with zero string allocations and flat integer array.
+ * High-performance spatial check with zero memory allocations and reusable flat integer array.
  */
 export function checkArrowEscape(
   arrow: MazeArrow,
@@ -279,8 +288,8 @@ export function checkArrowEscape(
   const { dr, dc } = DIR_VECTORS[arrow.dir];
 
   const totalCells = rows * cols;
-  const grid = new Int16Array(totalCells);
-  grid.fill(-1);
+  const grid = getSharedEscapeGrid(totalCells);
+  grid.fill(-1, 0, totalCells);
 
   const numArrows = allArrows.length;
   let currentArrowIdx = -1;
@@ -352,7 +361,7 @@ export function checkArrowEscape(
 
 /**
  * Finds all arrows that can currently escape.
- * Single-pass spatial index lookup for maximum performance.
+ * Single-pass spatial index lookup with zero allocations for maximum performance.
  */
 export function getSolvableArrows(
   allArrows: MazeArrow[],
@@ -360,8 +369,8 @@ export function getSolvableArrows(
   cols: number
 ): MazeArrow[] {
   const totalCells = rows * cols;
-  const grid = new Int16Array(totalCells);
-  grid.fill(-1);
+  const grid = getSharedEscapeGrid(totalCells);
+  grid.fill(-1, 0, totalCells);
 
   const numArrows = allArrows.length;
   for (let idx = 0; idx < numArrows; idx++) {

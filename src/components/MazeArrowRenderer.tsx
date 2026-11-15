@@ -75,7 +75,7 @@ function getArrowStablePaletteIndex(arrowId: string, fallbackIndex = 0): number 
   return Math.abs(hash + fallbackIndex) % MULTICOLOR_PALETTE.length;
 }
 
-export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
+const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
   arrow,
   index = 0,
   cellSize,
@@ -701,4 +701,29 @@ export const MazeArrowRenderer: React.FC<MazeArrowRendererProps> = React.memo(({
       )}
     </motion.g>
   );
+};
+
+export const MazeArrowRenderer = React.memo(MazeArrowRendererComponent, (prev, next) => {
+  // If flight status changed, must re-render
+  if (prev.isFlying !== next.isFlying) return false;
+  // If interactive feedback states changed, must re-render
+  if (prev.isHinted !== next.isHinted) return false;
+  if (prev.isShaking !== next.isShaking) return false;
+  if (prev.isBlocked !== next.isBlocked) return false;
+  if (prev.isHovered !== next.isHovered) return false;
+  // If visual theme or dimensions changed
+  if (prev.arrowTheme !== next.arrowTheme) return false;
+  if (prev.isDarkMode !== next.isDarkMode) return false;
+  if (prev.cellSize !== next.cellSize) return false;
+  if (prev.arrow !== next.arrow) return false;
+  if (prev.index !== next.index) return false;
+
+  // When arrow is flying, pan or zoomScale changes might update flight path exit distance
+  if (next.isFlying) {
+    if (prev.zoomScale !== next.zoomScale) return false;
+    if (prev.pan?.x !== next.pan?.x || prev.pan?.y !== next.pan?.y) return false;
+  }
+
+  // When arrow is static on board, panning/zooming the parent container does NOT require re-rendering!
+  return true;
 });

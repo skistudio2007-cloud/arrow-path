@@ -251,6 +251,12 @@ class SoundManager {
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
+        osc.onended = () => {
+          try {
+            osc.disconnect();
+            gain.disconnect();
+          } catch {}
+        };
         osc.start(now);
         osc.stop(now + 0.055);
         return;
@@ -276,6 +282,13 @@ class SoundManager {
         whiteNoise.connect(filter);
         filter.connect(noiseGain);
         noiseGain.connect(this.ctx.destination);
+        whiteNoise.onended = () => {
+          try {
+            whiteNoise.disconnect();
+            filter.disconnect();
+            noiseGain.disconnect();
+          } catch {}
+        };
 
         whiteNoise.start(now);
       }
@@ -292,6 +305,12 @@ class SoundManager {
 
       osc.connect(oscGain);
       oscGain.connect(this.ctx.destination);
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          oscGain.disconnect();
+        } catch {}
+      };
 
       osc.start(now);
       osc.stop(now + 0.03);
@@ -308,6 +327,12 @@ class SoundManager {
 
       thud.connect(thudGain);
       thudGain.connect(this.ctx.destination);
+      thud.onended = () => {
+        try {
+          thud.disconnect();
+          thudGain.disconnect();
+        } catch {}
+      };
 
       thud.start(now);
       thud.stop(now + 0.04);
