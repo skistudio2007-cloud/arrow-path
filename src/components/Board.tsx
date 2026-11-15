@@ -31,7 +31,6 @@ interface StaticGridDotsProps {
   gridDotColor: string;
   isVictory?: boolean;
   isDarkMode?: boolean;
-  waveOrigin?: { x: number; y: number; key: number } | null;
 }
 
 const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
@@ -41,7 +40,6 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
   gridDotColor,
   isVictory,
   isDarkMode = false,
-  waveOrigin,
 }) => {
   const dotRadius = Math.max(1.8, Math.min(3, baseCellSize * 0.06));
   const centerR = (rows - 1) / 2;
@@ -55,33 +53,22 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
       const cx = c * baseCellSize + baseCellSize / 2;
       const dist = Math.hypot(r - centerR, c - centerC);
       const normDist = dist / maxDist; // 0 at center, 1 at corner
-
-      let animStyle: React.CSSProperties | undefined = undefined;
-
-      if (isVictory) {
-        animStyle = {
-          transformBox: 'fill-box',
-          transformOrigin: 'center',
-          animation: `victoryDotDisappear 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) ${(normDist * 0.35).toFixed(3)}s forwards`,
-        };
-      } else if (waveOrigin) {
-        const waveDist = Math.hypot(cx - waveOrigin.x, cy - waveOrigin.y);
-        const waveDelay = Math.min(0.36, waveDist * 0.0014);
-        animStyle = {
-          transformBox: 'fill-box',
-          transformOrigin: 'center',
-          animation: `dotFlightRipple 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) ${waveDelay.toFixed(3)}s both`,
-        };
-      }
-
       dots.push(
         <circle
-          key={waveOrigin ? `sdot-${r}-${c}-${waveOrigin.key}` : `sdot-${r}-${c}`}
+          key={`sdot-${r}-${c}`}
           cx={cx}
           cy={cy}
           r={dotRadius}
           fill={gridDotColor}
-          style={animStyle}
+          style={
+            isVictory
+              ? {
+                  transformBox: 'fill-box',
+                  transformOrigin: 'center',
+                  animation: `victoryDotDisappear 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) ${(normDist * 0.35).toFixed(3)}s forwards`,
+                }
+              : undefined
+          }
           opacity={isVictory ? undefined : (isDarkMode ? "0.45" : "0.30")}
         />
       );
@@ -116,24 +103,6 @@ export const Board: React.FC<BoardProps> = ({
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPinching, setIsPinching] = useState<boolean>(false);
   const [isActivelyDragging, setIsActivelyDragging] = useState<boolean>(false);
-  const [waveOrigin, setWaveOrigin] = useState<{ x: number; y: number; key: number } | null>(null);
-  const prevFlyingSetRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    for (const id of flyingArrowIds) {
-      if (!prevFlyingSetRef.current.has(id)) {
-        const launched = arrows.find((a) => a.id === id);
-        if (launched && launched.points.length > 0) {
-          const head = launched.points[launched.points.length - 1];
-          const wx = head.c * baseCellSize + baseCellSize / 2;
-          const wy = head.r * baseCellSize + baseCellSize / 2;
-          setWaveOrigin({ x: wx, y: wy, key: Date.now() });
-        }
-        break;
-      }
-    }
-    prevFlyingSetRef.current = new Set(flyingArrowIds);
-  }, [flyingArrowIds, arrows, baseCellSize]);
 
   const handleHoverStart = useCallback((a: MazeArrow) => {
     setHoveredArrow(a);
@@ -172,7 +141,6 @@ export const Board: React.FC<BoardProps> = ({
     setPan({ x: 0, y: 0 });
     setIsPinching(false);
     setIsActivelyDragging(false);
-    setWaveOrigin(null);
   }, [rows, cols, levelId]);
 
   const boardWidth = cols * baseCellSize;
@@ -579,25 +547,7 @@ export const Board: React.FC<BoardProps> = ({
                 gridDotColor={gridDotColor}
                 isVictory={isVictory}
                 isDarkMode={isDarkMode}
-                waveOrigin={waveOrigin}
               />
-
-              {/* Gentle ambient screen ripple when arrow moves */}
-              {waveOrigin && !isVictory && (
-                <circle
-                  key={`screen-wave-${waveOrigin.key}`}
-                  cx={waveOrigin.x}
-                  cy={waveOrigin.y}
-                  r={8}
-                  fill="none"
-                  stroke={isDarkMode ? "rgba(56, 189, 248, 0.40)" : "rgba(37, 99, 235, 0.30)"}
-                  strokeWidth="2"
-                  className="pointer-events-none"
-                  style={{
-                    animation: 'screenFlightWave 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards',
-                  }}
-                />
-              )}
             </g>
 
             {/* Trajectory Guide for hovered arrow */}

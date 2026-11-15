@@ -10,13 +10,17 @@ Play directly in your browser:
 
 ## 📱 Android Downloads (Latest Build)
 
-| File | Purpose | Download Links |
-| :--- | :--- | :--- |
-| **`ArrowGo.apk`** | Direct Install on Android Phone | [Direct Download (Raw)](https://github.com/skistudio2007-cloud/arrow-path/raw/main/ArrowGo.apk) • [GitHub Release Download](https://github.com/skistudio2007-cloud/arrow-path/releases/download/latest-apk/ArrowGo.apk) |
-| **`arrow-go.apk`** | Alternative Direct APK Mirror | [Download Mirror](https://github.com/skistudio2007-cloud/arrow-path/raw/main/arrow-go.apk) |
-| **`arrow-go.aab`** | Google Play Store Upload (App Bundle) | [Download AAB](https://github.com/skistudio2007-cloud/arrow-path/raw/main/arrow-go.aab) |
+🚀 **Direct Instant Download (Recommended for Mobile)**:
+- [📥 **Download ArrowGo.apk (Direct Fast CDN)**](https://raw.githubusercontent.com/skistudio2007-cloud/arrow-path/main/ArrowGo.apk)
+- [📥 **Download Mirror (arrow-go.apk)**](https://raw.githubusercontent.com/skistudio2007-cloud/arrow-path/main/arrow-go.apk)
 
-> 🚀 **Latest Release**: [View on GitHub Releases](https://github.com/skistudio2007-cloud/arrow-path/releases/tag/latest-apk)
+| File | Purpose | Direct Download Link | Alternative Link |
+| :--- | :--- | :--- | :--- |
+| **`ArrowGo.apk`** | Direct Install on Android Phone | [⚡ Direct CDN Download](https://raw.githubusercontent.com/skistudio2007-cloud/arrow-path/main/ArrowGo.apk) | [GitHub Release Asset](https://github.com/skistudio2007-cloud/arrow-path/releases/download/latest-apk/ArrowGo.apk) |
+| **`arrow-go.apk`** | Direct APK Mirror | [⚡ Mirror CDN Download](https://raw.githubusercontent.com/skistudio2007-cloud/arrow-path/main/arrow-go.apk) | [GitHub Raw Link](https://github.com/skistudio2007-cloud/arrow-path/raw/main/arrow-go.apk) |
+| **`arrow-go.aab`** | Google Play Store Upload (App Bundle) | [⚡ Direct CDN Download](https://raw.githubusercontent.com/skistudio2007-cloud/arrow-path/main/arrow-go.aab) | [GitHub Raw Link](https://github.com/skistudio2007-cloud/arrow-path/raw/main/arrow-go.aab) |
+
+> 🏷️ **GitHub Releases**: [View latest-apk Release Tag](https://github.com/skistudio2007-cloud/arrow-path/releases/tag/latest-apk)
 
 ---
 

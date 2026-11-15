@@ -61,6 +61,7 @@ jobs:
       - name: Prepare APK File
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk ./ArrowGo.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk ./arrow-go.apk
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
@@ -76,24 +77,28 @@ jobs:
           tag_name: latest-apk
           name: "Arrow Go - Android APK (Latest)"
           make_latest: true
+          overwrite: true
           body: |
             ### 🎮 Arrow Go - Latest Android Build
             
             Click below to download `ArrowGo.apk` directly to your phone:
             - **Download**: [ArrowGo.apk](https://github.com/${{ github.repository }}/releases/download/latest-apk/ArrowGo.apk)
+            - **Direct CDN Link**: [ArrowGo.apk (Fast CDN)](https://raw.githubusercontent.com/${{ github.repository }}/main/ArrowGo.apk)
             
             **What's New in this Build:**
             - Fixed hint system: Exactly 1 hint granted per rewarded video ad.
             - Full official Google AdMob test ad integration (native Android + web simulation).
             - Settings menu includes AdMob test buttons for quick verification.
             - Fixed light/normal mode colors and dark mode theme isolation.
-            - Smoother arrow exit animations and celebratory transitions.
+            - Smoother arrow exit animations, bounce back feedback, and victory celebration transitions.
             
             **Installation instructions:**
             1. Tap on `ArrowGo.apk` to download.
             2. Open the downloaded file on your phone.
             3. If prompted with "Install unknown apps", tap **Settings** and turn on **Allow from this source**.
             4. Tap **Install** and enjoy playing!
-          files: ./ArrowGo.apk
+          files: |
+            ./ArrowGo.apk
+            ./arrow-go.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
