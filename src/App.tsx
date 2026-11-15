@@ -412,22 +412,6 @@ export default function App() {
     }
   }, [currentLevelId, currentLevel.id, loadLevel]);
 
-  // Background Preloader: Preloads next level & upcoming Hard Level in idle time for instant 0ms transitions!
-  useEffect(() => {
-    const idleTimer = setTimeout(() => {
-      if (currentLevelId < TOTAL_LEVELS) {
-        // Preload next level
-        getLevelById(currentLevelId + 1);
-        // Preload milestone hard levels (15, 30, 45, etc.) if close
-        const nextHardLevel = Math.ceil((currentLevelId + 1) / 15) * 15;
-        if (nextHardLevel <= TOTAL_LEVELS && nextHardLevel - currentLevelId <= 3) {
-          getLevelById(nextHardLevel);
-        }
-      }
-    }, 800);
-    return () => clearTimeout(idleTimer);
-  }, [currentLevelId]);
-
   // Handle arrow click/tap
   const handleArrowClick = (arrow: MazeArrow) => {
     if (isVictory || isGameOver || flyingArrowIds.has(arrow.id) || flyingArrowIdsRef.current.has(arrow.id)) return;
@@ -548,43 +532,12 @@ export default function App() {
     const celebrationColors = ['#0a0a0a', '#1e293b', '#2563eb', '#3b82f6', '#1d4ed8', '#60a5fa', '#ffffff'];
     try {
       confetti({
-        particleCount: 45,
-        angle: 60,
-        spread: 60,
-        origin: { x: 0.08, y: 0.65 },
-        colors: celebrationColors,
-        disableForReducedMotion: true,
-      });
-      confetti({
-        particleCount: 45,
-        angle: 120,
-        spread: 60,
-        origin: { x: 0.92, y: 0.65 },
-        colors: celebrationColors,
-        disableForReducedMotion: true,
-      });
-      confetti({
-        particleCount: 40,
-        spread: 90,
+        particleCount: 35,
+        spread: 70,
         origin: { x: 0.5, y: 0.5 },
         colors: celebrationColors,
         disableForReducedMotion: true,
       });
-
-      // Second celebratory confetti burst for a grand full celebration
-      window.setTimeout(() => {
-        try {
-          confetti({
-            particleCount: 50,
-            spread: 100,
-            origin: { x: 0.5, y: 0.45 },
-            colors: celebrationColors,
-            disableForReducedMotion: true,
-          });
-        } catch {
-          // Ignore
-        }
-      }, 380);
     } catch {
       // Ignore
     }
@@ -632,9 +585,14 @@ export default function App() {
       isRemoveAds = localStorage.getItem('arrowgo_remove_ads') === 'true';
     } catch {}
 
-    // Show full celebration animation (~2200ms) on the completed level,
-    // and then show the Home screen (NOT next level)
+    // Show full celebration animation (~1800ms) on the completed level,
+    // and then smoothly transition directly to Home screen
     winningAnimTimeoutRef.current = window.setTimeout(() => {
+      try {
+        confetti.reset();
+      } catch {
+        // Ignore
+      }
       setShowWinningAnimation(false);
       setIsVictory(false);
 
@@ -665,7 +623,7 @@ export default function App() {
         setCurrentScreen('tabs');
         setActiveTab('home');
       }
-    }, 2200);
+    }, 1800);
   };
 
   useEffect(() => {
@@ -916,16 +874,19 @@ export default function App() {
     });
   };
 
-  const handlePlayLevel = (lvlId: number) => {
+  const handleClearSlide = useCallback(() => {
+    setSlideFromLevelId(null);
+  }, []);
+
+  const handlePlayLevel = useCallback((lvlId: number) => {
     soundManager.playTap();
     setIsVictory(false);
-    if (currentLevelId !== lvlId || currentLevel.id !== lvlId) {
-      setCurrentLevelId(lvlId);
-      const targetLevel = getLevelById(lvlId);
-      loadLevel(targetLevel, false);
-    }
+    setShowWinningAnimation(false);
+    setCurrentLevelId(lvlId);
+    const targetLevel = getLevelById(lvlId);
+    loadLevel(targetLevel, false);
     setCurrentScreen('game');
-  };
+  }, [loadLevel]);
 
   // Determine active theme (overridden theme or current level's theme)
   const activeTheme = useMemo(() => {
@@ -964,7 +925,7 @@ export default function App() {
                 key="tab-home"
                 currentLevelId={currentLevelId}
                 slideFromLevelId={slideFromLevelId}
-                onClearSlide={() => setSlideFromLevelId(null)}
+                onClearSlide={handleClearSlide}
                 streakData={streakData}
                 lang={currentLanguage}
                 onPlayLevel={handlePlayLevel}
@@ -1125,7 +1086,7 @@ export default function App() {
               />
             )}
 
-            {/* Polished Winning Celebration Animation Overlay */}
+            {/* Polished Winning Celebration Animation Overlay (GPU-Accelerated 60 FPS) */}
             <AnimatePresence>
               {showWinningAnimation && (
                 <motion.div
@@ -1133,40 +1094,38 @@ export default function App() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.18 }}
                   className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center overflow-hidden"
                 >
-                  {/* Concentric expanding success burst rings (Black & Blue Theme) */}
+                  {/* Expanding success burst rings (Clean GPU transform, Black & Blue Theme) */}
                   <motion.div
-                    initial={{ scale: 0.35, opacity: 0.95 }}
-                    animate={{ scale: 2.35, opacity: 0 }}
-                    transition={{ duration: 1.15, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute w-48 h-48 rounded-full border-2 border-blue-500/90 shadow-[0_0_36px_rgba(59,130,246,0.75)]"
+                    initial={{ scale: 0.35, opacity: 0.9 }}
+                    animate={{ scale: 2.2, opacity: 0 }}
+                    transition={{ duration: 0.95, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute w-44 h-44 rounded-full border-2 border-blue-500/80 pointer-events-none"
                   />
                   <motion.div
-                    initial={{ scale: 0.25, opacity: 0.9 }}
-                    animate={{ scale: 1.85, opacity: 0 }}
-                    transition={{ duration: 1.05, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute w-36 h-36 rounded-full border-2 border-slate-900/80 shadow-[0_0_26px_rgba(15,23,42,0.6)]"
-                  />
-
-                  {/* Soft ambient center glow with Blue & Deep Slate */}
-                  <motion.div
-                    initial={{ scale: 0.4, opacity: 0 }}
-                    animate={{ scale: [0.4, 1.3, 0.95], opacity: [0, 0.55, 0] }}
-                    transition={{ duration: 1.15, ease: 'easeOut' }}
-                    className="absolute w-64 h-64 rounded-full bg-gradient-to-tr from-blue-600/35 via-sky-400/25 to-slate-950/20 blur-2xl"
+                    initial={{ scale: 0.25, opacity: 0.85 }}
+                    animate={{ scale: 1.7, opacity: 0 }}
+                    transition={{ duration: 0.85, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute w-32 h-32 rounded-full border-2 border-slate-900/70 pointer-events-none"
                   />
 
-                  {/* Shimmering celebration sparkles floating upward (Black & Blue Theme) */}
+                  {/* Soft ambient center glow using hardware-accelerated radial gradient (NO expensive blur filter!) */}
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: [0.5, 1.25, 0.95], opacity: [0, 0.65, 0] }}
+                    transition={{ duration: 0.95, ease: 'easeOut' }}
+                    className="absolute w-60 h-60 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.35)_0%,rgba(56,189,248,0.18)_40%,transparent_70%)] pointer-events-none"
+                  />
+
+                  {/* Crisp celebration sparkles floating upward (Zero SVG Filter Overhead) */}
                   {[
-                    { x: -60, y: -48, delay: 0.06, size: 24, char: '✨', color: '#2563eb' },
-                    { x: 62, y: -42, delay: 0.14, size: 22, char: '🔷', color: '#1d4ed8' },
-                    { x: -46, y: 44, delay: 0.08, size: 22, char: '⭐', color: '#0f172a' },
-                    { x: 52, y: 46, delay: 0.18, size: 24, char: '✨', color: '#60a5fa' },
-                    { x: 0, y: -68, delay: 0.04, size: 26, char: '🌟', color: '#2563eb' },
-                    { x: -70, y: 2, delay: 0.12, size: 20, char: '💠', color: '#3b82f6' },
-                    { x: 68, y: 8, delay: 0.16, size: 20, char: '✦', color: '#000000' },
+                    { x: -55, y: -42, delay: 0.05, size: 22, char: '✨', color: '#2563eb' },
+                    { x: 55, y: -38, delay: 0.12, size: 20, char: '🔷', color: '#1d4ed8' },
+                    { x: -42, y: 38, delay: 0.08, size: 20, char: '⭐', color: '#0f172a' },
+                    { x: 46, y: 40, delay: 0.15, size: 22, char: '✨', color: '#60a5fa' },
+                    { x: 0, y: -58, delay: 0.04, size: 24, char: '🌟', color: '#2563eb' },
                   ].map((sparkle, idx) => (
                     <motion.span
                       key={idx}
@@ -1178,63 +1137,39 @@ export default function App() {
                       }}
                       animate={{
                         opacity: [0, 1, 1, 0],
-                        scale: [0.2, 1.25, 1, 0.3],
+                        scale: [0.2, 1.2, 1, 0.3],
                         x: sparkle.x,
-                        y: sparkle.y - 28,
+                        y: sparkle.y - 24,
                       }}
                       transition={{
-                        duration: 1.1,
+                        duration: 0.95,
                         delay: sparkle.delay,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      className="absolute select-none filter drop-shadow-md leading-none"
+                      className="absolute select-none leading-none pointer-events-none"
                       style={{ fontSize: sparkle.size, color: sparkle.color }}
                     >
                       {sparkle.char}
                     </motion.span>
                   ))}
 
-                  {/* Central Celebration Pop (Zoom Type Animation, Borderless, Compact Letter Size) */}
+                  {/* Central Celebration Pop (Zoom Spring Animation, Fast, Crisp, Zero-Lag) */}
                   <motion.div
-                    initial={{ scale: 0.2, opacity: 0 }}
-                    animate={{ scale: [0.2, 1.15, 1], opacity: 1 }}
-                    exit={{ scale: 1.25, opacity: 0 }}
-                    transition={{ duration: 0.45, ease: [0.22, 1.25, 0.36, 1] }}
+                    initial={{ scale: 0.15, opacity: 0 }}
+                    animate={{ scale: [0.15, 1.12, 1], opacity: 1 }}
+                    exit={{ scale: 1.1, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1.25, 0.36, 1] }}
                     className="relative z-10 flex flex-col items-center justify-center select-none pointer-events-none"
                   >
-                    {/* Animated Letters (Zoom Punch Animation, Black & Blue Theme, Compact Neat Letter Size) */}
-                    <div className="flex items-center justify-center flex-wrap px-4 py-2">
-                      {Array.from(currentLanguage === 'hi' ? (praiseWord?.hi || 'लाजवाब!') : (praiseWord?.en || 'SUPERB!')).map((char, index) => {
-                        const isEven = index % 2 === 0;
-                        return (
-                          <motion.span
-                            key={`${praiseWord?.en || 'SUPERB'}-${index}`}
-                            initial={{
-                              opacity: 0,
-                              scale: 0.05,
-                              rotate: isEven ? -8 : 8,
-                            }}
-                            animate={{
-                              opacity: [0, 1, 1, 1],
-                              scale: [0.05, 1.38, 0.94, 1],
-                              rotate: [isEven ? -8 : 8, isEven ? 2 : -2, 0],
-                            }}
-                            transition={{
-                              duration: 0.65,
-                              delay: index * 0.065,
-                              ease: [0.22, 1.35, 0.36, 1],
-                            }}
-                            style={{ transformOrigin: 'center center' }}
-                            className={`inline-block text-3xl sm:text-4xl md:text-5xl font-black tracking-wider uppercase select-none ${
-                              isEven
-                                ? 'bg-gradient-to-b from-neutral-950 via-slate-900 to-blue-700 dark:from-white dark:via-blue-200 dark:to-blue-400'
-                                : 'bg-gradient-to-b from-blue-600 via-sky-500 to-neutral-950 dark:from-blue-400 dark:via-sky-300 dark:to-white'
-                            } bg-clip-text text-transparent filter drop-shadow-[0_5px_18px_rgba(37,99,235,0.65)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]`}
-                          >
-                            {char === ' ' ? '\u00A0' : char}
-                          </motion.span>
-                        );
-                      })}
+                    <div className="flex items-center justify-center px-4 py-2">
+                      <span
+                        className="text-3xl sm:text-4xl md:text-5xl font-black tracking-wider uppercase select-none bg-gradient-to-r from-blue-700 via-sky-500 to-slate-900 dark:from-blue-400 dark:via-sky-300 dark:to-white bg-clip-text text-transparent"
+                        style={{
+                          textShadow: '0 4px 14px rgba(37,99,235,0.4)',
+                        }}
+                      >
+                        {currentLanguage === 'hi' ? (praiseWord?.hi || 'लाजवाब!') : (praiseWord?.en || 'SUPERB!')}
+                      </span>
                     </div>
                   </motion.div>
                 </motion.div>

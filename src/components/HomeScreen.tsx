@@ -32,25 +32,31 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     return slideFromLevelId != null ? slideFromLevelId : currentLevelId;
   });
 
+  const onClearSlideRef = React.useRef(onClearSlide);
+  useEffect(() => {
+    onClearSlideRef.current = onClearSlide;
+  }, [onClearSlide]);
+
   useEffect(() => {
     if (slideFromLevelId != null && slideFromLevelId !== currentLevelId) {
       setDisplayedLevel(slideFromLevelId);
       const timer = window.setTimeout(() => {
         setDisplayedLevel(currentLevelId);
-        onClearSlide?.();
-      }, 400);
+        onClearSlideRef.current?.();
+      }, 350);
       return () => clearTimeout(timer);
     } else {
       setDisplayedLevel(currentLevelId);
     }
-  }, [slideFromLevelId, currentLevelId, onClearSlide]);
+  }, [slideFromLevelId, currentLevelId]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.28, ease: 'easeOut' }}
-      className="flex-1 w-full h-full max-h-full max-w-md sm:max-w-lg mx-auto flex flex-col justify-between items-center px-4 sm:px-5 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(5.25rem,calc(4.5rem+env(safe-area-inset-bottom)))] select-none overflow-hidden touch-none overscroll-none"
+      className="flex-1 w-full h-full max-h-full max-w-md sm:max-w-lg mx-auto flex flex-col justify-between items-center px-4 sm:px-5 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(5.25rem,calc(4.5rem+env(safe-area-inset-bottom)))] select-none overflow-hidden touch-manipulation overscroll-none"
     >
       {/* Top Bar: Streak on Left, Compact Trophy League on Right */}
       <div className="w-full shrink-0 flex items-center justify-between pt-2">
@@ -178,34 +184,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       </div>
 
-      {/* Big Continue Button with Breathing Glow & Spring Tap */}
+      {/* Big Continue Button with Breathing Scale Pulse & Spring Tap */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.22, duration: 0.3 }}
+        transition={{ delay: 0.18, duration: 0.25 }}
         className="w-full shrink-0 flex justify-center pb-3 sm:pb-5 mb-1"
       >
         <motion.button
           type="button"
           id="btn-continue-level"
           onClick={() => onPlayLevel(currentLevelId)}
-          whileHover={{ scale: 1.04, boxShadow: '0 10px 25px -4px rgba(83, 103, 252, 0.4)' }}
+          whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
           animate={{
-            boxShadow: [
-              '0 4px 14px 0 rgba(83, 103, 252, 0.25)',
-              '0 6px 20px 2px rgba(83, 103, 252, 0.38)',
-              '0 4px 14px 0 rgba(83, 103, 252, 0.25)',
-            ],
+            scale: [1, 1.025, 1],
           }}
           transition={{
-            boxShadow: {
-              duration: 2.4,
+            scale: {
+              duration: 2.2,
               repeat: Infinity,
               ease: 'easeInOut',
             },
           }}
-          className="w-full max-w-[280px] py-4 px-8 rounded-full bg-gradient-to-r from-[#5367fc] to-[#475bf7] text-white font-extrabold text-lg shadow-md cursor-pointer text-center tracking-wide"
+          className="w-full max-w-[280px] py-4 px-8 rounded-full bg-gradient-to-r from-[#5367fc] to-[#475bf7] text-white font-extrabold text-lg shadow-lg cursor-pointer text-center tracking-wide active:scale-95 transition-transform"
         >
           {t(lang, 'continueBtn')}
         </motion.button>
