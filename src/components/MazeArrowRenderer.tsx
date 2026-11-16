@@ -151,6 +151,11 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     onFlightCompleteRef.current = onFlightComplete;
   });
 
+  const onClickRef = useRef(onClick);
+  useEffect(() => {
+    onClickRef.current = onClick;
+  });
+
   const flightActiveRef = useRef(false);
   const flightDataRef = useRef<{ pts: any[]; lengths: { total: number; cum: number[] }; exitDistance: number } | null>(null);
 
@@ -507,7 +512,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         if (isFlying) return;
         e.stopPropagation();
         clearHold();
-        onClick(arrow);
+        onClickRef.current?.(arrow);
       }}
       initial={isDense ? false : {
         opacity: 0,

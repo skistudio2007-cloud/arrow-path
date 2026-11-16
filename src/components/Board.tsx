@@ -226,14 +226,19 @@ export const Board: React.FC<BoardProps> = ({
   }, [clampPanToBounds, applyDragWithDamping]);
 
   // Safe arrow click: prevents clicks if user was scrolling/swiping
+  const onArrowClickRef = useRef(onArrowClick);
+  useEffect(() => {
+    onArrowClickRef.current = onArrowClick;
+  });
+
   const handleSafeArrowClick = useCallback(
     (arrow: MazeArrow) => {
       if (hasMovedRef.current || Date.now() - lastScrollEndTimeRef.current < 250) {
         return; // User was scrolling, ignore click!
       }
-      onArrowClick(arrow);
+      onArrowClickRef.current(arrow);
     },
-    [onArrowClick]
+    []
   );
 
   // 1-Finger Scroll and 2-Finger Pinch Zoom & Slide Gestures

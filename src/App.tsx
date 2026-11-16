@@ -145,6 +145,10 @@ export default function App() {
     return getLevelById(id);
   });
   const [activeArrows, setActiveArrows] = useState<MazeArrow[]>(() => [...currentLevel.arrows]);
+  const activeArrowsRef = useRef<MazeArrow[]>(currentLevel.arrows);
+  useEffect(() => {
+    activeArrowsRef.current = activeArrows;
+  }, [activeArrows]);
   const activeArrowIdsRef = useRef<Set<string>>(new Set(currentLevel.arrows.map((a) => a.id)));
   const [lives, setLives] = useState<number>(3);
   const maxLives = 3;
@@ -295,6 +299,7 @@ export default function App() {
     const lvl1 = getLevelById(1);
     setCurrentLevel(lvl1);
     setActiveArrows([...lvl1.arrows]);
+    activeArrowsRef.current = [...lvl1.arrows];
     activeArrowIdsRef.current = new Set(lvl1.arrows.map((a) => a.id));
     setLives(3);
     setMoves(0);
@@ -375,6 +380,7 @@ export default function App() {
   const loadLevel = useCallback((level: LevelData, playSound = false) => {
     setCurrentLevel(level);
     setActiveArrows([...level.arrows]);
+    activeArrowsRef.current = [...level.arrows];
     activeArrowIdsRef.current = new Set(level.arrows.map((a) => a.id));
     setLives(3);
     setMoves(0);
@@ -414,10 +420,10 @@ export default function App() {
 
   // Handle arrow click/tap
   const handleArrowClick = (arrow: MazeArrow) => {
-    if (isVictory || isGameOver || flyingArrowIds.has(arrow.id) || flyingArrowIdsRef.current.has(arrow.id)) return;
+    if (isVictory || isGameOver || flyingArrowIdsRef.current.has(arrow.id)) return;
 
-    // Filter out arrows that are currently in flight so they don't block subsequent moves
-    const nonFlyingArrows = activeArrows.filter((a) => !flyingArrowIds.has(a.id));
+    // Filter out arrows that are currently in flight using synchronous ref so unblocked arrows escape with 0ms delay
+    const nonFlyingArrows = activeArrowsRef.current.filter((a) => !flyingArrowIdsRef.current.has(a.id));
 
     const { canEscape, blockedBy } = checkArrowEscape(
       arrow,
@@ -636,6 +642,7 @@ export default function App() {
       flyingArrowIdsRef.current.delete(arrowId);
       if (!activeArrowIdsRef.current.has(arrowId)) return;
       activeArrowIdsRef.current.delete(arrowId);
+      activeArrowsRef.current = activeArrowsRef.current.filter((a) => a.id !== arrowId);
       const isLevelFinished = activeArrowIdsRef.current.size === 0;
 
       // Pure state update removing escaped arrow from active grid
