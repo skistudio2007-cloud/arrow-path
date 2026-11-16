@@ -589,6 +589,7 @@ export const Board: React.FC<BoardProps> = ({
                 key={`${levelId ?? 0}-${arrow.id}-${arrowTheme}`}
                 arrow={arrow}
                 index={index}
+                totalArrows={arrows.length}
                 cellSize={baseCellSize}
                 boardWidth={boardWidth}
                 boardHeight={boardHeight}
@@ -605,7 +606,6 @@ export const Board: React.FC<BoardProps> = ({
                 onFlightComplete={onFlightComplete}
                 isDarkMode={isDarkMode}
                 arrowTheme={arrowTheme}
-                isDense={arrows.length > 20}
               />
             ))}
           </svg>

@@ -16,6 +16,7 @@ import { getArrowFlightPalette, FLIGHT_PALETTES } from '../utils/flightThemes';
 interface MazeArrowRendererProps {
   arrow: MazeArrow;
   index?: number;
+  totalArrows?: number;
   cellSize: number;
   boardWidth?: number;
   boardHeight?: number;
@@ -79,6 +80,7 @@ function getArrowStablePaletteIndex(arrowId: string, fallbackIndex = 0): number 
 const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
   arrow,
   index = 0,
+  totalArrows = 1,
   cellSize,
   boardWidth,
   boardHeight,
@@ -497,9 +499,12 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     }
   }, [clearHold]);
 
-  const arrangeDelay = Math.min(0.45, (index || 0) * 0.028);
-
-  const isDense = isDenseProp || cellSize < 26;
+  // Stagger arrange wave smoothly across all arrows in the level so arrows cascade in like dominoes
+  const numArrows = totalArrows || 1;
+  const totalWaveDuration = numArrows > 30 ? 0.62 : Math.min(0.48, numArrows * 0.028);
+  const arrangeDelay = numArrows > 1
+    ? ((index || 0) / (numArrows - 1)) * totalWaveDuration
+    : 0;
 
   return (
     <motion.g
@@ -516,7 +521,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         clearHold();
         onClickRef.current?.(arrow);
       }}
-      initial={isDense ? false : {
+      initial={{
         opacity: 0,
         scale: 0.35,
         y: -10,
@@ -528,13 +533,13 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         y: isFlying ? 0 : (isShaking ? bounceY : 0),
       }}
       transition={{
-        opacity: { duration: 0.2, delay: isDense ? 0 : arrangeDelay },
+        opacity: { duration: 0.2, delay: arrangeDelay },
         scale: isShaking
           ? { duration: 0.46, times: [0, 0.18, 0.44, 0.70, 0.88, 1], ease: 'easeOut' }
-          : { type: 'spring', stiffness: 450, damping: 22, delay: isDense ? 0 : arrangeDelay },
+          : { type: 'spring', stiffness: 450, damping: 22, delay: arrangeDelay },
         y: isShaking
           ? { duration: 0.46, times: [0, 0.18, 0.44, 0.70, 0.88, 1], ease: 'easeOut' }
-          : { type: 'spring', stiffness: 450, damping: 22, delay: isDense ? 0 : arrangeDelay },
+          : { type: 'spring', stiffness: 450, damping: 22, delay: arrangeDelay },
         x: isShaking
           ? { duration: 0.46, times: [0, 0.18, 0.44, 0.70, 0.88, 1], ease: 'easeOut' }
           : { duration: 0.1 },
@@ -548,9 +553,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
           ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.65))'
           : isHovered
           ? (isDarkMode ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.45))' : 'drop-shadow(0 2px 4px rgba(15, 23, 42, 0.25))')
-          : isDense
-          ? 'none'
-          : (isDarkMode ? 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7))' : 'none'),
+          : (numArrows > 35 ? 'none' : (isDarkMode ? 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7))' : 'none')),
         willChange: isFlying || isShaking ? 'transform, opacity' : 'auto',
       }}
       className={isFlying ? "pointer-events-none select-none" : "cursor-pointer select-none"}
@@ -650,67 +653,44 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         />
       )}
 
-      {/* Main Snake Body Polyline */}
-      {isDense ? (
-        <path
-          ref={bodyPathRef}
-          d={bodyPath}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      ) : (
-        <motion.path
-          ref={bodyPathRef}
-          d={bodyPath}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{
-            duration: 0.28,
-            delay: arrangeDelay,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-        />
-      )}
+      {/* Main Snake Body Polyline with draw-in arrange animation */}
+      <motion.path
+        ref={bodyPathRef}
+        d={bodyPath}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{
+          duration: 0.28,
+          delay: arrangeDelay,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+      />
 
-      {/* Sleek Aerodynamic Arrowhead */}
-      {isDense ? (
-        <path
-          ref={headPathRef}
-          d={headPath}
-          fill={headColor}
-          stroke={headColor}
-          strokeWidth={1}
-          strokeLinejoin="round"
-        />
-      ) : (
-        <motion.path
-          ref={headPathRef}
-          d={headPath}
-          fill={headColor}
-          stroke={headColor}
-          strokeWidth={1}
-          strokeLinejoin="round"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{
-            delay: arrangeDelay + 0.06,
-            type: 'spring',
-            stiffness: 480,
-            damping: 20,
-          }}
-          style={{
-            transformOrigin: `${headTip.x}px ${headTip.y}px`,
-          }}
-        />
-      )}
+      {/* Sleek Aerodynamic Arrowhead with spring pop arrange animation */}
+      <motion.path
+        ref={headPathRef}
+        d={headPath}
+        fill={headColor}
+        stroke={headColor}
+        strokeWidth={1}
+        strokeLinejoin="round"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{
+          delay: arrangeDelay + 0.05,
+          type: 'spring',
+          stiffness: 480,
+          damping: 20,
+        }}
+        style={{
+          transformOrigin: `${headTip.x}px ${headTip.y}px`,
+        }}
+      />
     </motion.g>
   );
 };
@@ -729,7 +709,7 @@ export const MazeArrowRenderer = React.memo(MazeArrowRendererComponent, (prev, n
   if (prev.cellSize !== next.cellSize) return false;
   if (prev.arrow !== next.arrow) return false;
   if (prev.index !== next.index) return false;
-  if (prev.isDense !== next.isDense) return false;
+  if (prev.totalArrows !== next.totalArrows) return false;
 
   // When arrow is flying, pan or zoomScale changes might update flight path exit distance
   if (next.isFlying) {
