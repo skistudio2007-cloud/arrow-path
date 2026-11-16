@@ -32,6 +32,7 @@ interface MazeArrowRendererProps {
   onFlightComplete?: (arrowId: string) => void;
   isDarkMode?: boolean;
   arrowTheme?: ArrowTheme;
+  isDense?: boolean;
 }
 
 // Beautiful vibrant multi-color arrow theme palette with distinct harmonious shades
@@ -94,6 +95,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
   onFlightComplete,
   isDarkMode = false,
   arrowTheme = 'classic',
+  isDense: isDenseProp = false,
 }) => {
   const groupRef = useRef<SVGGElement>(null);
   const hitPathRef = useRef<SVGPathElement>(null);
@@ -497,7 +499,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
 
   const arrangeDelay = Math.min(0.45, (index || 0) * 0.028);
 
-  const isDense = cellSize < 26;
+  const isDense = isDenseProp || cellSize < 26;
 
   return (
     <motion.g
@@ -546,60 +548,65 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
           ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.65))'
           : isHovered
           ? (isDarkMode ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.45))' : 'drop-shadow(0 2px 4px rgba(15, 23, 42, 0.25))')
+          : isDense
+          ? 'none'
           : (isDarkMode ? 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7))' : 'none'),
         willChange: isFlying || isShaking ? 'transform, opacity' : 'auto',
       }}
       className={isFlying ? "pointer-events-none select-none" : "cursor-pointer select-none"}
     >
-      {/* SVG linear gradient definitions */}
-      <defs>
-        {/* Dynamic Flight Gradient: Tail is LIGHT, Head is DARK, or Rainbow if gradient theme */}
-        <linearGradient
-          ref={flightGradRef}
-          id={flightGradientId}
-          x1={basePixelPoints[0]?.x ?? 0}
-          y1={basePixelPoints[0]?.y ?? 0}
-          x2={headTip.x}
-          y2={headTip.y}
-          gradientUnits="userSpaceOnUse"
-        >
-          {arrowTheme === 'gradient' ? (
-            gradientPalette.map((col, sIdx) => (
-              <stop
-                key={sIdx}
-                offset={`${(sIdx / (gradientPalette.length - 1)) * 100}%`}
-                stopColor={col}
-              />
-            ))
-          ) : (
-            <>
-              <stop offset="0%" stopColor={flightPalette.light} />
-              <stop offset="45%" stopColor={flightPalette.mid} />
-              <stop offset="100%" stopColor={flightPalette.dark} />
-            </>
+      {/* SVG linear gradient definitions rendered only when needed */}
+      {(isFlying || arrowTheme === 'gradient') && (
+        <defs>
+          {isFlying && (
+            <linearGradient
+              ref={flightGradRef}
+              id={flightGradientId}
+              x1={basePixelPoints[0]?.x ?? 0}
+              y1={basePixelPoints[0]?.y ?? 0}
+              x2={headTip.x}
+              y2={headTip.y}
+              gradientUnits="userSpaceOnUse"
+            >
+              {arrowTheme === 'gradient' ? (
+                gradientPalette.map((col, sIdx) => (
+                  <stop
+                    key={sIdx}
+                    offset={`${(sIdx / (gradientPalette.length - 1)) * 100}%`}
+                    stopColor={col}
+                  />
+                ))
+              ) : (
+                <>
+                  <stop offset="0%" stopColor={flightPalette.light} />
+                  <stop offset="45%" stopColor={flightPalette.mid} />
+                  <stop offset="100%" stopColor={flightPalette.dark} />
+                </>
+              )}
+            </linearGradient>
           )}
-        </linearGradient>
 
-        {/* SVG linear gradient definition when in multi-color gradient theme */}
-        {arrowTheme === 'gradient' && (
-          <linearGradient
-            id={gradientId}
-            x1={gradientCoords.x1}
-            y1={gradientCoords.y1}
-            x2={gradientCoords.x2}
-            y2={gradientCoords.y2}
-            gradientUnits="userSpaceOnUse"
-          >
-            {gradientPalette.map((col, sIdx) => (
-              <stop
-                key={sIdx}
-                offset={`${(sIdx / (gradientPalette.length - 1)) * 100}%`}
-                stopColor={col}
-              />
-            ))}
-          </linearGradient>
-        )}
-      </defs>
+          {/* SVG linear gradient definition when in multi-color gradient theme */}
+          {arrowTheme === 'gradient' && (
+            <linearGradient
+              id={gradientId}
+              x1={gradientCoords.x1}
+              y1={gradientCoords.y1}
+              x2={gradientCoords.x2}
+              y2={gradientCoords.y2}
+              gradientUnits="userSpaceOnUse"
+            >
+              {gradientPalette.map((col, sIdx) => (
+                <stop
+                  key={sIdx}
+                  offset={`${(sIdx / (gradientPalette.length - 1)) * 100}%`}
+                  stopColor={col}
+                />
+              ))}
+            </linearGradient>
+          )}
+        </defs>
+      )}
 
       {/* Generous invisible stroke area for easy tap & click interaction */}
       <path
@@ -722,6 +729,7 @@ export const MazeArrowRenderer = React.memo(MazeArrowRendererComponent, (prev, n
   if (prev.cellSize !== next.cellSize) return false;
   if (prev.arrow !== next.arrow) return false;
   if (prev.index !== next.index) return false;
+  if (prev.isDense !== next.isDense) return false;
 
   // When arrow is flying, pan or zoomScale changes might update flight path exit distance
   if (next.isFlying) {

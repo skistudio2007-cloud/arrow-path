@@ -46,35 +46,52 @@ const StaticGridDots: React.FC<StaticGridDotsProps> = React.memo(({
   const centerC = (cols - 1) / 2;
   const maxDist = Math.hypot(centerR, centerC) || 1;
 
-  const dots: React.ReactNode[] = [];
+  if (isVictory) {
+    const dots: React.ReactNode[] = [];
+    for (let r = 0; r < rows; r++) {
+      const cy = r * baseCellSize + baseCellSize / 2;
+      for (let c = 0; c < cols; c++) {
+        const cx = c * baseCellSize + baseCellSize / 2;
+        const dist = Math.hypot(r - centerR, c - centerC);
+        const normDist = dist / maxDist;
+        dots.push(
+          <circle
+            key={`sdot-${r}-${c}`}
+            cx={cx}
+            cy={cy}
+            r={dotRadius}
+            fill={gridDotColor}
+            style={{
+              transformBox: 'fill-box',
+              transformOrigin: 'center',
+              animation: `victoryDotDisappear 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) ${(normDist * 0.35).toFixed(3)}s forwards`,
+            }}
+          />
+        );
+      }
+    }
+    return <>{dots}</>;
+  }
+
+  // Pre-generate single path for all dots - 1 single DOM element instead of 400-900 nodes!
+  let pathData = '';
+  const r2 = dotRadius * 2;
   for (let r = 0; r < rows; r++) {
     const cy = r * baseCellSize + baseCellSize / 2;
     for (let c = 0; c < cols; c++) {
       const cx = c * baseCellSize + baseCellSize / 2;
-      const dist = Math.hypot(r - centerR, c - centerC);
-      const normDist = dist / maxDist; // 0 at center, 1 at corner
-      dots.push(
-        <circle
-          key={`sdot-${r}-${c}`}
-          cx={cx}
-          cy={cy}
-          r={dotRadius}
-          fill={gridDotColor}
-          style={
-            isVictory
-              ? {
-                  transformBox: 'fill-box',
-                  transformOrigin: 'center',
-                  animation: `victoryDotDisappear 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) ${(normDist * 0.35).toFixed(3)}s forwards`,
-                }
-              : undefined
-          }
-          opacity={isVictory ? undefined : (isDarkMode ? "0.45" : "0.30")}
-        />
-      );
+      pathData += `M ${cx} ${cy} m -${dotRadius},0 a ${dotRadius},${dotRadius} 0 1,0 ${r2},0 a ${dotRadius},${dotRadius} 0 1,0 -${r2},0 `;
     }
   }
-  return <>{dots}</>;
+
+  return (
+    <path
+      d={pathData}
+      fill={gridDotColor}
+      opacity={isDarkMode ? 0.45 : 0.3}
+      className="pointer-events-none"
+    />
+  );
 });
 
 export const Board: React.FC<BoardProps> = ({
@@ -588,6 +605,7 @@ export const Board: React.FC<BoardProps> = ({
                 onFlightComplete={onFlightComplete}
                 isDarkMode={isDarkMode}
                 arrowTheme={arrowTheme}
+                isDense={arrows.length > 20}
               />
             ))}
           </svg>
