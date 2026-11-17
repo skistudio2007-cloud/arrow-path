@@ -395,6 +395,9 @@ export default function App() {
     setIsGameOver(false);
     setAchievedMilestones(new Set());
     setActiveMilestone(null);
+    try {
+      confetti.reset();
+    } catch {}
     if (milestoneTimeoutRef.current) {
       clearTimeout(milestoneTimeoutRef.current);
       milestoneTimeoutRef.current = null;

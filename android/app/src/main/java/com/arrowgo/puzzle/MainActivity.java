@@ -14,13 +14,13 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         MobileAds.initialize(this, initializationStatus -> {});
 
-        // Enable maximum hardware acceleration and high-priority GPU rendering
+        // Enable standard smooth native Chromium GPU rendering
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
-                webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                // Use default layer type so Chromium renders directly without off-screen GPU texture thrashing
+                webView.setLayerType(View.LAYER_TYPE_NONE, null);
                 WebSettings settings = webView.getSettings();
-                settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
                 settings.setCacheMode(WebSettings.LOAD_DEFAULT);
                 settings.setDomStorageEnabled(true);
                 settings.setDatabaseEnabled(true);
