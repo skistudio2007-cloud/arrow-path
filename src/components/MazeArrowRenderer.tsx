@@ -326,7 +326,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     animFrameRef.current = requestAnimationFrame(step);
 
     return () => {
-      if (!isFlying && animFrameRef.current !== null) {
+      if (animFrameRef.current !== null) {
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
       }
