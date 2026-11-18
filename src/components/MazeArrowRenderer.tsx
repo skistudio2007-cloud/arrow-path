@@ -201,42 +201,30 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
 
     const bWidth = Number.isFinite(boardWidth) && (boardWidth ?? 0) > 0 ? (boardWidth as number) : 1000;
     const bHeight = Number.isFinite(boardHeight) && (boardHeight ?? 0) > 0 ? (boardHeight as number) : 1000;
-    const zScale = Number.isFinite(zoomScale) && (zoomScale ?? 0) > 0 ? (zoomScale as number) : 1;
-    const px = Number.isFinite(pan?.x) ? (pan!.x as number) : 0;
-    const py = Number.isFinite(pan?.y) ? (pan!.y as number) : 0;
+    const safeOrigLength = Number.isFinite(originalLength) && originalLength > 0 ? originalLength : cellSize * 2;
 
-    const winW = typeof window !== 'undefined' && Number.isFinite(window.innerWidth) && window.innerWidth > 0 ? window.innerWidth : 800;
-    const winH = typeof window !== 'undefined' && Number.isFinite(window.innerHeight) && window.innerHeight > 0 ? window.innerHeight : 1200;
-
-    // Viewport boundaries projected into SVG coordinate space
-    const screenLeftSvg = bWidth / 2 - (winW / 2 + px) / zScale;
-    const screenRightSvg = bWidth / 2 + (winW / 2 - px) / zScale;
-    const screenTopSvg = bHeight / 2 - (winH / 2 + py) / zScale;
-    const screenBottomSvg = bHeight / 2 + (winH / 2 - py) / zScale;
-
-    // Generous margin (250px) past the screen edge ensuring the arrow's entire tail is well past the visible screen
-    const margin = 250;
-
-    let distToEdge = 1000;
+    // Direct distance to board edge + full arrow body length + small safety buffer
+    // Arrow exits board cleanly and triggers completion immediately without 1000px offscreen delay
+    let distToEdge = 250;
     const dirLower = String(arrow.dir).toLowerCase();
     switch (dirLower) {
       case 'up':
-        distToEdge = (tip.y - screenTopSvg) + margin;
+        distToEdge = tip.y + safeOrigLength + cellSize * 2;
         break;
       case 'down':
-        distToEdge = (screenBottomSvg - tip.y) + margin;
+        distToEdge = (bHeight - tip.y) + safeOrigLength + cellSize * 2;
         break;
       case 'left':
-        distToEdge = (tip.x - screenLeftSvg) + margin;
+        distToEdge = tip.x + safeOrigLength + cellSize * 2;
         break;
       case 'right':
       default:
-        distToEdge = (screenRightSvg - tip.x) + margin;
+        distToEdge = (bWidth - tip.x) + safeOrigLength + cellSize * 2;
         break;
     }
 
-    const safeDistToEdge = Number.isFinite(distToEdge) && distToEdge > 0 ? distToEdge : 1000;
-    const exitDist = Math.max(Math.ceil(safeDistToEdge), cellSize * 25, 1000);
+    const safeDistToEdge = Number.isFinite(distToEdge) && distToEdge > 0 ? distToEdge : 250;
+    const exitDist = Math.max(Math.ceil(safeDistToEdge), Math.ceil(cellSize * 6), 250);
     const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist, cornerRadius);
     const lengths = getPolylineLengths(pts);
     const fData = { pts, lengths, exitDistance: exitDist };
@@ -245,9 +233,8 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     const startTime = performance.now();
     // Constant uniform speed: 1600 px/sec (1.6 px/ms) for all arrows!
     const SPEED_PX_PER_SEC = 1600;
-    const safeOrigLength = Number.isFinite(originalLength) && originalLength > 0 ? originalLength : cellSize * 2;
     const totalTravelDistance = safeOrigLength + fData.exitDistance;
-    const duration = Math.max(250, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000));
+    const duration = Math.max(200, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000));
 
     const step = (now: number) => {
       try {
@@ -331,7 +318,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         animFrameRef.current = null;
       }
     };
-  }, [isFlying, arrow.id, originalLength, cornerRadius, arrowHeadSize, cellSize, arrow.points, arrow.dir, basePixelPoints, boardWidth, boardHeight, zoomScale, pan]);
+  }, [isFlying, arrow.id, originalLength, cornerRadius, arrowHeadSize, cellSize, arrow.points, arrow.dir, basePixelPoints, boardWidth, boardHeight]);
 
   // Super satisfying physical elastic bounce-back recoil when blocked:
   // 1. Arrow lunges forward towards the obstacle (+dc * forwardDist)
@@ -698,6 +685,13 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
 export const MazeArrowRenderer = React.memo(MazeArrowRendererComponent, (prev, next) => {
   // If flight status changed, must re-render
   if (prev.isFlying !== next.isFlying) return false;
+
+  // Once an arrow is flying, it runs its own direct-DOM animation loop to completion.
+  // Panning, zooming, or sliding the board must NEVER interrupt or freeze a flying arrow!
+  if (prev.isFlying && next.isFlying) {
+    return true;
+  }
+
   // If interactive feedback states changed, must re-render
   if (prev.isHinted !== next.isHinted) return false;
   if (prev.isShaking !== next.isShaking) return false;
@@ -710,12 +704,6 @@ export const MazeArrowRenderer = React.memo(MazeArrowRendererComponent, (prev, n
   if (prev.arrow !== next.arrow) return false;
   if (prev.index !== next.index) return false;
   if (prev.totalArrows !== next.totalArrows) return false;
-
-  // When arrow is flying, pan or zoomScale changes might update flight path exit distance
-  if (next.isFlying) {
-    if (prev.zoomScale !== next.zoomScale) return false;
-    if (prev.pan?.x !== next.pan?.x || prev.pan?.y !== next.pan?.y) return false;
-  }
 
   // When arrow is static on board, panning/zooming the parent container does NOT require re-rendering!
   return true;
