@@ -255,25 +255,17 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     flightDataRef.current = fData;
 
     const startTime = performance.now();
-    // High-speed uniform velocity (2400 px/sec) so arrow rockets completely off the screen in ~450ms
-    const SPEED_PX_PER_SEC = 2400;
     const safeOrigLength = Number.isFinite(originalLength) && originalLength > 0 ? originalLength : cellSize * 2;
     const totalTravelDistance = safeOrigLength + fData.exitDistance;
-    const duration = Math.max(380, Math.min(520, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000)));
+    // Fast, crisp flight duration (~420ms - 480ms) designed for continuous acceleration
+    const duration = Math.max(380, Math.min(480, Math.round((totalTravelDistance / 2800) * 1000)));
 
     const step = (now: number) => {
       try {
         const elapsed = now - startTime;
         const rawProgress = Math.min(1, duration > 0 ? elapsed / duration : 1);
-        // Buttery smooth launch: silky smooth ease-in from rest, then cruise at uniform top speed
-        let eased = rawProgress;
-        const a = 0.12; // first 12% accelerates smoothly from rest
-        const v = 1 / (1 - a / 2); // constant uniform cruising velocity
-        if (rawProgress < a) {
-          eased = (v / (2 * a)) * rawProgress * rawProgress;
-        } else {
-          eased = v * (rawProgress - a / 2);
-        }
+        // Continuous acceleration (quadratic ease-in: velocity constantly increases from launch to exit)
+        const eased = rawProgress * rawProgress;
 
         const travelDist = eased * totalTravelDistance;
         const startDist = travelDist;
