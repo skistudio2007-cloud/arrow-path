@@ -160,6 +160,16 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     onClickRef.current = onClick;
   });
 
+  const panRef = useRef(pan);
+  useEffect(() => {
+    panRef.current = pan;
+  });
+
+  const zoomScaleRef = useRef(zoomScale);
+  useEffect(() => {
+    zoomScaleRef.current = zoomScale;
+  });
+
   const flightActiveRef = useRef(false);
   const flightDataRef = useRef<{ pts: any[]; lengths: { total: number; cum: number[] }; exitDistance: number } | null>(null);
 
@@ -201,9 +211,11 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
 
     const bWidth = Number.isFinite(boardWidth) && (boardWidth ?? 0) > 0 ? (boardWidth as number) : 1000;
     const bHeight = Number.isFinite(boardHeight) && (boardHeight ?? 0) > 0 ? (boardHeight as number) : 1000;
-    const zScale = Number.isFinite(zoomScale) && (zoomScale ?? 0) > 0 ? (zoomScale as number) : 1;
-    const px = Number.isFinite(pan?.x) ? (pan!.x as number) : 0;
-    const py = Number.isFinite(pan?.y) ? (pan!.y as number) : 0;
+    const currentZoom = zoomScaleRef.current ?? zoomScale;
+    const currentPan = panRef.current ?? pan;
+    const zScale = Number.isFinite(currentZoom) && (currentZoom ?? 0) > 0 ? (currentZoom as number) : 1;
+    const px = Number.isFinite(currentPan?.x) ? (currentPan!.x as number) : 0;
+    const py = Number.isFinite(currentPan?.y) ? (currentPan!.y as number) : 0;
 
     const winW = typeof window !== 'undefined' && Number.isFinite(window.innerWidth) && window.innerWidth > 0 ? window.innerWidth : 800;
     const winH = typeof window !== 'undefined' && Number.isFinite(window.innerHeight) && window.innerHeight > 0 ? window.innerHeight : 1200;
@@ -337,8 +349,9 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
       }
+      flightActiveRef.current = false;
     };
-  }, [isFlying, arrow.id, originalLength, cornerRadius, arrowHeadSize, cellSize, arrow.points, arrow.dir, basePixelPoints, boardWidth, boardHeight, zoomScale, pan]);
+  }, [isFlying, arrow.id, originalLength, cornerRadius, arrowHeadSize, cellSize, arrow.points, arrow.dir, basePixelPoints, boardWidth, boardHeight]);
 
   // Super satisfying physical elastic bounce-back recoil when blocked:
   // 1. Arrow lunges forward towards the obstacle (+dc * forwardDist)
@@ -718,10 +731,11 @@ export const MazeArrowRenderer = React.memo(MazeArrowRendererComponent, (prev, n
   if (prev.index !== next.index) return false;
   if (prev.totalArrows !== next.totalArrows) return false;
 
-  // When arrow is flying, pan or zoomScale changes might update flight path exit distance
+  // Once an arrow is flying, decouple it completely from parent pan/zoom re-renders.
+  // It moves in SVG coordinates with its own independent 60-120 FPS requestAnimationFrame loop,
+  // completely unaffected by screen sliding, zooming, or panning.
   if (next.isFlying) {
-    if (prev.zoomScale !== next.zoomScale) return false;
-    if (prev.pan?.x !== next.pan?.x || prev.pan?.y !== next.pan?.y) return false;
+    return true;
   }
 
   // When arrow is static on board, panning/zooming the parent container does NOT require re-rendering!
