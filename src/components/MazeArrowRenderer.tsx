@@ -226,47 +226,40 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     const screenTopSvg = bHeight / 2 - (winH / 2 + py) / zScale;
     const screenBottomSvg = bHeight / 2 + (winH / 2 - py) / zScale;
 
-    // Tight margin past screen/board edge ensuring arrow is cleanly off-screen without delay
-    const margin = Math.max(50, Math.ceil(cellSize * 1.5));
+    // Buffer past the screen edge ensuring the arrow's entire tail is 100% off-screen
+    const buffer = Math.max(120, Math.ceil(cellSize * 3));
 
-    let boardDistToEdge = 300;
-    let screenDistToEdge = 300;
+    let distToScreenEdge = 800;
     const dirLower = String(arrow.dir).toLowerCase();
     switch (dirLower) {
       case 'up':
-        boardDistToEdge = tip.y + margin;
-        screenDistToEdge = (tip.y - screenTopSvg) + margin;
+        distToScreenEdge = Math.max(tip.y + buffer, (tip.y - screenTopSvg) + buffer);
         break;
       case 'down':
-        boardDistToEdge = (bHeight - tip.y) + margin;
-        screenDistToEdge = (screenBottomSvg - tip.y) + margin;
+        distToScreenEdge = Math.max((bHeight - tip.y) + buffer, (screenBottomSvg - tip.y) + buffer);
         break;
       case 'left':
-        boardDistToEdge = tip.x + margin;
-        screenDistToEdge = (tip.x - screenLeftSvg) + margin;
+        distToScreenEdge = Math.max(tip.x + buffer, (tip.x - screenLeftSvg) + buffer);
         break;
       case 'right':
       default:
-        boardDistToEdge = (bWidth - tip.x) + margin;
-        screenDistToEdge = (screenRightSvg - tip.x) + margin;
+        distToScreenEdge = Math.max((bWidth - tip.x) + buffer, (screenRightSvg - tip.x) + buffer);
         break;
     }
 
-    const neededDist = Math.max(boardDistToEdge, screenDistToEdge);
-    const safeDistToEdge = Number.isFinite(neededDist) && neededDist > 0 ? neededDist : cellSize * 5;
-    // Tight exit distance: arrow smoothly exits off-screen without waiting 1000px in empty space
-    const exitDist = Math.max(Math.ceil(safeDistToEdge), cellSize * 3);
+    // Guarantees arrow travels completely past the outer bezel of the screen (no early pop-out!)
+    const exitDist = Math.max(Math.ceil(distToScreenEdge), 1100, Math.ceil(Math.max(bWidth, bHeight) * 1.2));
     const pts = buildExtendedSnakePath(arrow.points, arrow.dir, cellSize, exitDist, cornerRadius);
     const lengths = getPolylineLengths(pts);
     const fData = { pts, lengths, exitDistance: exitDist };
     flightDataRef.current = fData;
 
     const startTime = performance.now();
-    // Constant uniform speed: 1600 px/sec (1.6 px/ms) for all arrows!
-    const SPEED_PX_PER_SEC = 1600;
+    // High-speed uniform velocity (2400 px/sec) so arrow rockets completely off the screen in ~450ms
+    const SPEED_PX_PER_SEC = 2400;
     const safeOrigLength = Number.isFinite(originalLength) && originalLength > 0 ? originalLength : cellSize * 2;
     const totalTravelDistance = safeOrigLength + fData.exitDistance;
-    const duration = Math.max(220, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000));
+    const duration = Math.max(380, Math.min(520, Math.round((totalTravelDistance / SPEED_PX_PER_SEC) * 1000)));
 
     const step = (now: number) => {
       try {
