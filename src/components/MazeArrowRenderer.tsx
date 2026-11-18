@@ -257,15 +257,17 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
     const startTime = performance.now();
     const safeOrigLength = Number.isFinite(originalLength) && originalLength > 0 ? originalLength : cellSize * 2;
     const totalTravelDistance = safeOrigLength + fData.exitDistance;
-    // Fast, crisp flight duration (~420ms - 480ms) designed for continuous acceleration
-    const duration = Math.max(380, Math.min(480, Math.round((totalTravelDistance / 2800) * 1000)));
+    // Duration (~520ms - 620ms) allows visible slow start, then smooth high-speed acceleration off-screen
+    const duration = Math.max(520, Math.min(620, Math.round((totalTravelDistance / 2400) * 1000)));
 
     const step = (now: number) => {
       try {
         const elapsed = now - startTime;
         const rawProgress = Math.min(1, duration > 0 ? elapsed / duration : 1);
-        // Continuous acceleration (quadratic ease-in: velocity constantly increases from launch to exit)
-        const eased = rawProgress * rawProgress;
+        // Starts slow for a bit, then accelerates smoothly and continuously off the screen
+        const p2 = rawProgress * rawProgress;
+        const p3 = p2 * rawProgress;
+        const eased = 0.35 * p2 + 0.65 * p3;
 
         const travelDist = eased * totalTravelDistance;
         const startDist = travelDist;
