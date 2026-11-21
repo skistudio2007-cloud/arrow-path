@@ -28,6 +28,16 @@ class SoundManager {
     if (saved !== null) {
       this.enabled = saved === 'true';
     }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && this.ctx && this.ctx.state === 'running') {
+          this.ctx.suspend().catch(() => {});
+        } else if (!document.hidden && this.ctx && this.ctx.state === 'suspended' && this.enabled) {
+          this.ctx.resume().catch(() => {});
+        }
+      });
+    }
   }
 
   private initCtx() {

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import confetti from 'canvas-confetti';
+import { fireConfetti } from '../utils/confettiHelper';
 import { Star, ArrowRight, RotateCcw, Home, Sparkles, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LevelData } from '../types';
@@ -35,7 +35,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     if (isOpen) {
       try {
         if (typeof window !== 'undefined') {
-          confetti({
+          fireConfetti({
             particleCount: 70,
             spread: 65,
             origin: { y: 0.58 },

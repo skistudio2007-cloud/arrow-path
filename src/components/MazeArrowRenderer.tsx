@@ -310,6 +310,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
           }
           flightActiveRef.current = false;
           animFrameRef.current = null;
+          flightDataRef.current = null;
           try {
             onFlightCompleteRef.current?.(arrow.id);
           } catch (completeErr) {
@@ -323,6 +324,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         }
         flightActiveRef.current = false;
         animFrameRef.current = null;
+        flightDataRef.current = null;
         try {
           onFlightCompleteRef.current?.(arrow.id);
         } catch {}
@@ -337,6 +339,7 @@ const MazeArrowRendererComponent: React.FC<MazeArrowRendererProps> = ({
         animFrameRef.current = null;
       }
       flightActiveRef.current = false;
+      flightDataRef.current = null;
     };
   }, [isFlying, arrow.id, originalLength, cornerRadius, arrowHeadSize, cellSize, arrow.points, arrow.dir, basePixelPoints, boardWidth, boardHeight]);
 

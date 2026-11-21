@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { LayoutGrid, RotateCcw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import confetti from 'canvas-confetti';
+import { fireConfetti, resetConfetti } from './utils/confettiHelper';
 import { Board } from './components/Board';
 import { Header } from './components/Header';
 import { HomeScreen } from './components/HomeScreen';
@@ -351,7 +351,7 @@ export default function App() {
     // Celebratory micro-confetti around round smiley
     try {
       if (typeof window !== 'undefined') {
-        confetti({
+        fireConfetti({
           particleCount: 16,
           spread: 55,
           origin: { y: 0.26 },
@@ -396,8 +396,12 @@ export default function App() {
     setAchievedMilestones(new Set());
     setActiveMilestone(null);
     try {
-      confetti.reset();
+      resetConfetti();
     } catch {}
+    if (winningAnimTimeoutRef.current) {
+      clearTimeout(winningAnimTimeoutRef.current);
+      winningAnimTimeoutRef.current = null;
+    }
     if (milestoneTimeoutRef.current) {
       clearTimeout(milestoneTimeoutRef.current);
       milestoneTimeoutRef.current = null;
@@ -540,7 +544,7 @@ export default function App() {
     setIsVictory(false);
     const celebrationColors = ['#0a0a0a', '#1e293b', '#2563eb', '#3b82f6', '#1d4ed8', '#60a5fa', '#ffffff'];
     try {
-      confetti({
+      fireConfetti({
         particleCount: 35,
         spread: 70,
         origin: { x: 0.5, y: 0.5 },
@@ -598,7 +602,7 @@ export default function App() {
     // and then smoothly transition directly to Home screen
     winningAnimTimeoutRef.current = window.setTimeout(() => {
       try {
-        confetti.reset();
+        resetConfetti();
       } catch {
         // Ignore
       }
